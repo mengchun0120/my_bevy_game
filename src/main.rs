@@ -24,9 +24,13 @@ fn load_menu(
     game_config: Res<GameConfigHandle>,
     mut game_configs: ResMut<Assets<GameConfig>>,
     mut state: ResMut<NextState<AppState>>,
+    mut window_query: Query<&mut Window>,
 ) {
     if let Some(config) = game_configs.remove(game_config.0.id()) {
-        info!("Loaded config {:?}", config.boxes);
+        info!("Config loaded successfully");
+        if let Ok(mut window) = window_query.single_mut() {
+            window.resolution.set(config.screen.width, config.screen.height);
+        }
         state.set(AppState::Menu);
     }
 }
@@ -38,8 +42,15 @@ struct BoxConfig {
     color: [f32; 4],
 }
 
+#[derive(Deserialize, Debug)]
+struct ScreenConfig {
+    width: f32,
+    height: f32,
+}
+
 #[derive(Deserialize, Asset, TypePath, Debug)]
 struct GameConfig {
+    screen: ScreenConfig,
     boxes: Vec<BoxConfig>,
 }
 

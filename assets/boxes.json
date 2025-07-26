@@ -1,4 +1,8 @@
 {
+    "screen": {
+        "width": 800.0,
+        "height": 800.0
+    },
     "boxes": [
         {
             "bitmaps": [
