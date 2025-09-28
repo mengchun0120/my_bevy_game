@@ -1,57 +1,59 @@
-use bevy::prelude::*;
-use bevy::reflect::TypePath;
-use serde::Deserialize;
-use bevy_common_assets::json::JsonAssetPlugin;
+mod game_config;
+use bevy::{log::LogPlugin, prelude::*};
+use std::{fs::File, path::PathBuf};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{prelude::*, fmt, EnvFilter};
+use clap::Parser;
+
+struct LogFileGuard(WorkerGuard);
 
 fn main() {
+    let args = Cli::parse();
+
+    let _log_guard = setup_log(&args.log_path);
+
     App::new()
-        .add_plugins((
-            DefaultPlugins,
-            JsonAssetPlugin::<GameConfig>::new(&["json"]),
-        ))
+        .add_plugins(DefaultPlugins.build().disable::<LogPlugin>())
         .init_state::<AppState>()
-        .add_systems(Startup, setup)
-        .add_systems(Update, load_menu.run_if(in_state(AppState::Loading)))
+        .add_systems(Startup, setup_game)
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let game_config = GameConfigHandle(asset_server.load("boxes.json"));
-    commands.insert_resource(game_config);
+#[derive(Parser)]
+struct Cli {
+    #[arg(short, long)]
+    log_path: PathBuf,
+    
+    #[arg(short, long)]
+    config_path: PathBuf,
 }
 
-fn load_menu(
-    game_config: Res<GameConfigHandle>,
-    mut game_configs: ResMut<Assets<GameConfig>>,
-    mut state: ResMut<NextState<AppState>>,
-    mut window_query: Query<&mut Window>,
-) {
-    if let Some(config) = game_configs.remove(game_config.0.id()) {
-        info!("Config loaded successfully");
-        if let Ok(mut window) = window_query.single_mut() {
-            window.resolution.set(config.screen.width, config.screen.height);
-        }
-        state.set(AppState::Menu);
-    }
+fn setup_log(log_path: &std::path::PathBuf) -> LogFileGuard {
+    let log_file = File::create(log_path).expect("Open file");
+    let (non_blocking_appender, guard) = tracing_appender::non_blocking(log_file);
+
+    let file_layer = fmt::layer()
+        .with_ansi(false) // Disable ANSI color codes for the file to keep it clean
+        .with_writer(non_blocking_appender)
+        .with_file(true)
+        .with_level(true)
+        .with_line_number(true)
+        .with_thread_names(true);
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::from_default_env())
+        .with(file_layer)
+        .init();
+
+    LogFileGuard(guard)
 }
 
-#[derive(Deserialize, Debug)]
-struct BoxConfig {
-    bitmaps: [[[i32; 4]; 4]; 4],
-    level: i32,
-    color: [f32; 4],
-}
-
-#[derive(Deserialize, Debug)]
-struct ScreenConfig {
-    width: f32,
-    height: f32,
-}
-
-#[derive(Deserialize, Asset, TypePath, Debug)]
-struct GameConfig {
-    screen: ScreenConfig,
-    boxes: Vec<BoxConfig>,
+fn setup_game() {
+    println!("setup");
+    info!("setup");
+    warn!("warn");
+    error!("error");
+    debug!("debug");
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -60,6 +62,3 @@ enum AppState {
     Loading,
     Menu,
 }
-
-#[derive(Resource)]
-struct GameConfigHandle(Handle<GameConfig>);
