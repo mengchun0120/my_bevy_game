@@ -1,5 +1,6 @@
 mod config;
 mod my_error;
+use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
 use std::{fs::File, path::PathBuf};
 use tracing_appender::non_blocking::WorkerGuard;
@@ -21,7 +22,15 @@ fn main() -> Result<(), MyError> {
     println!("{:?}", &config);
 
     App::new()
-        .add_plugins(DefaultPlugins.build().disable::<LogPlugin>())
+        .add_plugins(DefaultPlugins.build().disable::<LogPlugin>()
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    resolution: WindowResolution::new(config.window_width(), config.window_height()),
+                    ..default()
+                }),
+                ..default()
+            }
+        ))
         .init_state::<AppState>()
         .add_systems(Startup, setup_game)
         .run();

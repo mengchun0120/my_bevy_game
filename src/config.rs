@@ -27,4 +27,12 @@ impl GameConfig {
 
         Ok(game_config)
     }
+
+    pub fn window_width(&self) -> f32 {
+        self.window_size[0]
+    }
+
+    pub fn window_height(&self) -> f32 {
+        self.window_size[1]
+    }
 }
