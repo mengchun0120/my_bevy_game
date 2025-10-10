@@ -1,35 +1,38 @@
-mod my_error;
 mod game_lib;
+mod my_error;
+mod utils;
+use crate::game_lib::*;
+use crate::my_error::*;
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
+use clap::Parser;
 use std::{fs::File, path::PathBuf};
 use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{prelude::*, fmt, EnvFilter};
-use clap::Parser;
-use crate::my_error::*;
-use crate::game_lib::*;
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 struct LogFileGuard(WorkerGuard);
 
 fn main() -> Result<(), MyError> {
     let args = Cli::parse();
-
     let _log_guard = setup_log(&args.log_path);
-
     let config = GameConfig::read(&args.config_path)?;
 
-    println!("{:?}", &config);
-
     App::new()
-        .add_plugins(DefaultPlugins.build().disable::<LogPlugin>()
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    resolution: WindowResolution::new(config.window_size[0], config.window_size[1]),
+        .add_plugins(
+            DefaultPlugins
+                .build()
+                .disable::<LogPlugin>()
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        resolution: WindowResolution::new(
+                            config.window_size[0],
+                            config.window_size[1],
+                        ),
+                        ..default()
+                    }),
                     ..default()
                 }),
-                ..default()
-            }
-        ))
+        )
         .insert_resource(config)
         .init_state::<AppState>()
         .add_systems(Startup, setup_game)
@@ -67,21 +70,32 @@ fn setup_log(log_path: &std::path::PathBuf) -> LogFileGuard {
     LogFileGuard(guard)
 }
 
-fn setup_game(mut commands: Commands, game_config: Res<GameConfig>, meshes: ResMut<Assets<Mesh>>) {
-    println!("setup");
+fn setup_game(
+    mut commands: Commands,
+    game_config: Res<GameConfig>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let game_lib = GameLib::new(game_config.as_ref(), meshes.as_mut(), materials.as_mut());
+    commands.insert_resource(game_lib);
 
-
-
-    commands.spawn(());
+    info!("Finished setting up game");
 }
 
 fn setup_game_panel(
     commands: &mut Commands,
     game_config: &GameConfig,
+    game_lib: &GameLib,
     meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<ColorMaterial>
+    materials: &mut Assets<ColorMaterial>,
 ) {
-
+    let box_config = &game_config.box_config;
+    let box_span = box_config.size + box_config.spacing;
+    let panel_config = &game_config.game_panel_config;
+    let panel_internal_width = (panel_config.size[0] as f32) * box_span + box_config.spacing;
+    let panel_internal_height = (panel_config.size[1] as f32) * box_span + box_config.spacing;
+    let panel_width = panel_internal_width + panel_config.border_breath * 2.0;
+    let panel_height = panel_internal_height + panel_config.border_breath * 2.0;
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]

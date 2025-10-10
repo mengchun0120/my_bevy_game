@@ -1,5 +1,5 @@
-use thiserror;
 use serde_json;
+use thiserror;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MyError {
