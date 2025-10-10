@@ -1,14 +1,13 @@
-mod config;
 mod my_error;
+mod game_lib;
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
 use std::{fs::File, path::PathBuf};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{prelude::*, fmt, EnvFilter};
 use clap::Parser;
-use crate::my_error::MyError;
-
-use crate::config::GameConfig;
+use crate::my_error::*;
+use crate::game_lib::*;
 
 struct LogFileGuard(WorkerGuard);
 
@@ -25,12 +24,13 @@ fn main() -> Result<(), MyError> {
         .add_plugins(DefaultPlugins.build().disable::<LogPlugin>()
             .set(WindowPlugin {
                 primary_window: Some(Window {
-                    resolution: WindowResolution::new(config.window_width(), config.window_height()),
+                    resolution: WindowResolution::new(config.window_size[0], config.window_size[1]),
                     ..default()
                 }),
                 ..default()
             }
         ))
+        .insert_resource(config)
         .init_state::<AppState>()
         .add_systems(Startup, setup_game)
         .run();
@@ -67,12 +67,21 @@ fn setup_log(log_path: &std::path::PathBuf) -> LogFileGuard {
     LogFileGuard(guard)
 }
 
-fn setup_game() {
+fn setup_game(mut commands: Commands, game_config: Res<GameConfig>, meshes: ResMut<Assets<Mesh>>) {
     println!("setup");
-    info!("setup");
-    warn!("warn");
-    error!("error");
-    debug!("debug");
+
+
+
+    commands.spawn(());
+}
+
+fn setup_game_panel(
+    commands: &mut Commands,
+    game_config: &GameConfig,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<ColorMaterial>
+) {
+
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
