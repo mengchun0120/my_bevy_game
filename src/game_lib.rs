@@ -67,18 +67,14 @@ impl GameLib {
         let origin_pos = -vec_to_vec2(&game_config.window_size) / 2.0;
         let panel_config = &game_config.game_panel_config;
         let box_config = &game_config.box_config;
-        let game_panel_origin = origin_pos
-            + vec_to_vec2(&panel_config.pos)
-            + Vec2::splat(panel_config.border_breath);
+        let game_panel_origin =
+            origin_pos + vec_to_vec2(&panel_config.pos) + Vec2::splat(panel_config.border_breath);
 
-        let box_mesh = meshes.add(Rectangle::new(
-            box_config.size,
-            box_config.size,
-        ));
+        let box_mesh = meshes.add(Rectangle::new(box_config.size, box_config.size));
 
         let box_colors = Self::init_box_colors(&box_config.play_boxes, materials);
 
-        let lib = GameLib {
+        let game_lib = GameLib {
             origin_pos: origin_pos,
             game_panel_origin: game_panel_origin,
             box_mesh: box_mesh,
@@ -87,7 +83,7 @@ impl GameLib {
 
         info!("GameLib initialized");
 
-        lib
+        game_lib
     }
 
     pub fn init_box_colors(

@@ -1,0 +1,1 @@
+RUST_LOG="my_bevy_game=info" cargo run -- -l game.log -c assets/game_config.json
