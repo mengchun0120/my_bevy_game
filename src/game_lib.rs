@@ -32,9 +32,12 @@ pub struct BoxConfig {
     pub play_boxes: Vec<PlayBoxConfig>,
 }
 
+const PLAYER_BOX_SIZE: usize = 4;
+const PLAYER_BOX_ROTATE_COUNT: usize = 4;
+
 #[derive(Debug, Deserialize)]
 pub struct PlayBoxConfig {
-    pub bitmaps: [[[u8; 4]; 4]; 4],
+    pub bitmaps: [[[u8; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE]; PLAYER_BOX_ROTATE_COUNT],
     pub level: u32,
     pub color: [u8; 4],
 }
@@ -50,12 +53,14 @@ impl GameConfig {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 pub struct GameLib {
     pub origin_pos: Vec2,
     pub game_panel_origin: Vec2,
+    pub box_span: f32,
     pub box_mesh: Handle<Mesh>,
     pub box_colors: Vec<Handle<ColorMaterial>>,
+    pub box_locations: [[Vec2; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE],
 }
 
 impl GameLib {
@@ -64,21 +69,29 @@ impl GameLib {
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
     ) -> GameLib {
-        let origin_pos = -vec_to_vec2(&game_config.window_size) / 2.0;
         let panel_config = &game_config.game_panel_config;
         let box_config = &game_config.box_config;
+
+        let origin_pos = -vec_to_vec2(&game_config.window_size) / 2.0;
+
         let game_panel_origin =
             origin_pos + vec_to_vec2(&panel_config.pos) + Vec2::splat(panel_config.border_breath);
+        
+        let box_span = box_config.size + box_config.spacing;
 
         let box_mesh = meshes.add(Rectangle::new(box_config.size, box_config.size));
 
         let box_colors = Self::init_box_colors(&box_config.play_boxes, materials);
 
+        let box_locations = Self::init_box_locations(box_span);
+        
         let game_lib = GameLib {
             origin_pos: origin_pos,
             game_panel_origin: game_panel_origin,
+            box_span: box_span,
             box_mesh: box_mesh,
             box_colors: box_colors,
+            box_locations: box_locations,
         };
 
         info!("GameLib initialized");
@@ -86,7 +99,7 @@ impl GameLib {
         game_lib
     }
 
-    pub fn init_box_colors(
+    fn init_box_colors(
         play_boxes: &[PlayBoxConfig],
         materials: &mut Assets<ColorMaterial>,
     ) -> Vec<Handle<ColorMaterial>> {
@@ -96,5 +109,23 @@ impl GameLib {
             colors.push(material);
         }
         colors
+    }
+
+    fn init_box_locations(box_span: f32) -> [[Vec2; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE] {
+        let mut box_locations = [[Vec2{x: 0.0, y: 0.0}; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE];
+        let initial_x = box_span / 2.0;
+        let mut y = box_span / 2.0;
+
+        for row in (0..PLAYER_BOX_SIZE).rev() {
+            let mut x = initial_x;
+            for col in 0..PLAYER_BOX_SIZE {
+                box_locations[row][col].x = x;
+                box_locations[row][col].y = y;
+                x += box_span;
+            }
+            y += box_span;
+        }
+
+        box_locations
     }
 }

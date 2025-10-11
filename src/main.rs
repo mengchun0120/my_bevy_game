@@ -1,6 +1,7 @@
 mod game_lib;
 mod my_error;
 mod utils;
+mod player_box;
 use crate::game_lib::*;
 use crate::my_error::*;
 use crate::utils::*;
