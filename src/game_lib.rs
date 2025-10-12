@@ -68,15 +68,6 @@ pub struct PlayBoxConfig {
 }
 
 impl GameConfig {
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<GameConfig, MyError> {
-        let json_str = fs::read_to_string(path.as_ref())?;
-        let game_config: GameConfig = serde_json::from_str(&json_str)?;
-
-        info!("Config read successfully from {:?}", path.as_ref());
-
-        Ok(game_config)
-    }
-
     pub fn play_box_type_count(&self) -> usize {
         self.box_config.play_boxes.len()
     }

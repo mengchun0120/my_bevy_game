@@ -12,13 +12,14 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use crate::game_lib::*;
 use crate::play_box::*;
 use crate::my_error::*;
+use crate::utils::read_json;
 
 struct LogFileGuard(WorkerGuard);
 
 fn main() -> Result<(), MyError> {
     let args = Cli::parse();
     let _log_guard = setup_log(&args.log_path);
-    let config = GameConfig::read(&args.config_path)?;
+    let config: GameConfig = read_json(&args.config_path)?;
 
     App::new()
         .add_plugins(
