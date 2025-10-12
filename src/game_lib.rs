@@ -55,6 +55,16 @@ pub struct BoxConfig {
     pub play_boxes: Vec<PlayBoxConfig>,
 }
 
+impl BoxConfig {
+    pub fn play_box_type_count(&self) -> usize {
+        self.play_boxes.len()
+    }
+
+    pub fn play_box_bitmap(&self, type_index: usize, rotate_index: usize) -> &BitMap {
+        &self.play_boxes[type_index].bitmaps[rotate_index]
+    }
+}
+
 pub const PLAY_BOX_BITMAP_SIZE: usize = 4;
 pub const PLAY_BOX_ROTATE_COUNT: usize = 4;
 
@@ -65,16 +75,6 @@ pub struct PlayBoxConfig {
     pub bitmaps: [BitMap; PLAY_BOX_ROTATE_COUNT],
     pub level: u32,
     pub color: [u8; 4],
-}
-
-impl GameConfig {
-    pub fn play_box_type_count(&self) -> usize {
-        self.box_config.play_boxes.len()
-    }
-
-    pub fn play_box_bitmap(&self, type_index: usize, rotate_index: usize) -> &BitMap {
-        &self.box_config.play_boxes[type_index].bitmaps[rotate_index]
-    }
 }
 
 #[derive(Resource, Debug)]

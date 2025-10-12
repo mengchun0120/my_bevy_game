@@ -1,6 +1,6 @@
+use crate::game_lib::*;
 use bevy::prelude::*;
 use rand::Rng;
-use crate::game_lib::*;
 
 #[derive(Component, Debug)]
 pub enum BoxState {
@@ -22,7 +22,7 @@ impl PlayBox {
         game_lib: &mut GameLib,
         commands: &mut Commands,
     ) {
-        let play_box = Self::new_play_box(index_pos, game_config, game_lib);
+        let play_box = Self::new_play_box(index_pos, &game_config.box_config, game_lib);
 
         info!("PlayBox: {:?}", play_box);
 
@@ -32,10 +32,12 @@ impl PlayBox {
 
     fn new_play_box(
         index_pos: &[usize; 2],
-        game_config: &GameConfig,
+        box_config: &BoxConfig,
         game_lib: &mut GameLib,
     ) -> Self {
-        let type_index = game_lib.rng.random_range(0..game_config.play_box_type_count());
+        let type_index = game_lib
+            .rng
+            .random_range(0..box_config.play_box_type_count());
         let rotate_index = game_lib.rng.random_range(0..PLAY_BOX_ROTATE_COUNT);
         Self {
             index_pos: index_pos.clone(),
@@ -54,9 +56,10 @@ impl PlayBox {
         let init_pos = Self::init_play_box_pos(index_pos, game_config, game_lib);
         let color = &game_lib.box_colors[self.type_index];
         let box_span = game_lib.box_span;
-        let bitmap = game_config.play_box_bitmap(self.type_index, self.rotate_index);
+        let box_config = &game_config.box_config;
+        let bitmap = box_config.play_box_bitmap(self.type_index, self.rotate_index);
         let mut y = init_pos.y;
-        let z = game_config.box_config.z;
+        let z = box_config.z;
 
         for row in (0..PLAY_BOX_BITMAP_SIZE).rev() {
             let mut x = init_pos.x;

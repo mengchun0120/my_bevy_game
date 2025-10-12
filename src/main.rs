@@ -3,16 +3,16 @@ mod my_error;
 mod play_box;
 mod utils;
 
+use crate::game_lib::*;
+use crate::my_error::*;
+use crate::play_box::*;
+use crate::utils::read_json;
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
 use clap::Parser;
 use std::{fs::File, path::PathBuf};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
-use crate::game_lib::*;
-use crate::play_box::*;
-use crate::my_error::*;
-use crate::utils::read_json;
 
 struct LogFileGuard(WorkerGuard);
 
@@ -92,11 +92,7 @@ fn setup_game(
         materials.as_mut(),
     );
 
-    setup_play_box(
-        game_config.as_ref(),
-        &mut game_lib,
-        &mut commands,
-    );
+    setup_play_box(game_config.as_ref(), &mut game_lib, &mut commands);
 
     commands.insert_resource(game_lib);
 
@@ -117,9 +113,8 @@ fn setup_game_panel(
     let panel_internal_height = (panel_config.row_count() as f32) * box_span + box_config.spacing;
     let panel_width = panel_internal_width + panel_config.border_breath * 2.0;
     let panel_height = panel_internal_height + panel_config.border_breath * 2.0;
-    let panel_pos = game_lib.origin_pos
-        + panel_config.pos()
-        + Vec2::new(panel_width, panel_height) / 2.0;
+    let panel_pos =
+        game_lib.origin_pos + panel_config.pos() + Vec2::new(panel_width, panel_height) / 2.0;
 
     let panel_internal_mesh =
         meshes.add(Rectangle::new(panel_internal_width, panel_internal_height));
@@ -141,11 +136,7 @@ fn setup_game_panel(
     info!("Game panel initialized");
 }
 
-fn setup_play_box(
-    game_config: &GameConfig,
-    game_lib: &mut GameLib,
-    commands: &mut Commands,
-) {
+fn setup_play_box(game_config: &GameConfig, game_lib: &mut GameLib, commands: &mut Commands) {
     let index_pos: [usize; 2] = [27, 0];
     PlayBox::add(&index_pos, game_config, game_lib, commands);
 }
