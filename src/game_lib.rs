@@ -1,6 +1,7 @@
 use crate::my_error::MyError;
 use crate::utils::*;
 use bevy::prelude::*;
+use rand::prelude::*;
 use serde::Deserialize;
 use serde_json;
 use std::fs;
@@ -15,13 +16,35 @@ pub struct GameConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct GamePanelConfig {
-    pub size: [u32; 2],
-    pub pos: [f32; 2],
-    pub background_color: [u8; 4],
-    pub border_color: [u8; 4],
+    size: [usize; 2],
+    pos: [f32; 2],
+    background_color: [u8; 4],
+    border_color: [u8; 4],
     pub border_breath: f32,
     pub background_z: f32,
     pub border_z: f32,
+}
+
+impl GamePanelConfig {
+    pub fn row_count(&self) -> usize {
+        self.size[0]
+    }
+
+    pub fn col_count(&self) -> usize {
+        self.size[1]
+    }
+
+    pub fn pos(&self) -> Vec2 {
+        vec_to_vec2(&self.pos)
+    }
+
+    pub fn background_color(&self) -> Color {
+        vec_to_color(&self.background_color)
+    }
+
+    pub fn border_color(&self) -> Color {
+        vec_to_color(&self.border_color)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -32,12 +55,14 @@ pub struct BoxConfig {
     pub play_boxes: Vec<PlayBoxConfig>,
 }
 
-const PLAYER_BOX_SIZE: usize = 4;
-const PLAYER_BOX_ROTATE_COUNT: usize = 4;
+pub const PLAY_BOX_BITMAP_SIZE: usize = 4;
+pub const PLAY_BOX_ROTATE_COUNT: usize = 4;
+
+type BitMap = [[u8; PLAY_BOX_BITMAP_SIZE]; PLAY_BOX_BITMAP_SIZE];
 
 #[derive(Debug, Deserialize)]
 pub struct PlayBoxConfig {
-    pub bitmaps: [[[u8; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE]; PLAYER_BOX_ROTATE_COUNT],
+    pub bitmaps: [BitMap; PLAY_BOX_ROTATE_COUNT],
     pub level: u32,
     pub color: [u8; 4],
 }
@@ -51,16 +76,24 @@ impl GameConfig {
 
         Ok(game_config)
     }
+
+    pub fn play_box_type_count(&self) -> usize {
+        self.box_config.play_boxes.len()
+    }
+
+    pub fn play_box_bitmap(&self, type_index: usize, rotate_index: usize) -> &BitMap {
+        &self.box_config.play_boxes[type_index].bitmaps[rotate_index]
+    }
 }
 
 #[derive(Resource, Debug)]
 pub struct GameLib {
     pub origin_pos: Vec2,
-    pub game_panel_origin: Vec2,
+    pub box_origin: Vec2,
     pub box_span: f32,
     pub box_mesh: Handle<Mesh>,
     pub box_colors: Vec<Handle<ColorMaterial>>,
-    pub box_locations: [[Vec2; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE],
+    pub rng: StdRng,
 }
 
 impl GameLib {
@@ -74,24 +107,26 @@ impl GameLib {
 
         let origin_pos = -vec_to_vec2(&game_config.window_size) / 2.0;
 
-        let game_panel_origin =
-            origin_pos + vec_to_vec2(&panel_config.pos) + Vec2::splat(panel_config.border_breath);
-        
+        let box_origin = origin_pos
+            + vec_to_vec2(&panel_config.pos)
+            + Vec2::splat(panel_config.border_breath + box_config.spacing)
+            + Vec2::splat(box_config.size) / 2.0;
+
         let box_span = box_config.size + box_config.spacing;
 
         let box_mesh = meshes.add(Rectangle::new(box_config.size, box_config.size));
 
         let box_colors = Self::init_box_colors(&box_config.play_boxes, materials);
 
-        let box_locations = Self::init_box_locations(box_span);
-        
+        let rng = StdRng::from_os_rng();
+
         let game_lib = GameLib {
-            origin_pos: origin_pos,
-            game_panel_origin: game_panel_origin,
-            box_span: box_span,
-            box_mesh: box_mesh,
-            box_colors: box_colors,
-            box_locations: box_locations,
+            origin_pos,
+            box_origin,
+            box_span,
+            box_mesh,
+            box_colors,
+            rng,
         };
 
         info!("GameLib initialized");
@@ -109,23 +144,5 @@ impl GameLib {
             colors.push(material);
         }
         colors
-    }
-
-    fn init_box_locations(box_span: f32) -> [[Vec2; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE] {
-        let mut box_locations = [[Vec2{x: 0.0, y: 0.0}; PLAYER_BOX_SIZE]; PLAYER_BOX_SIZE];
-        let initial_x = box_span / 2.0;
-        let mut y = box_span / 2.0;
-
-        for row in (0..PLAYER_BOX_SIZE).rev() {
-            let mut x = initial_x;
-            for col in 0..PLAYER_BOX_SIZE {
-                box_locations[row][col].x = x;
-                box_locations[row][col].y = y;
-                x += box_span;
-            }
-            y += box_span;
-        }
-
-        box_locations
     }
 }

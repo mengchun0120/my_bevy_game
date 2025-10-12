@@ -1,16 +1,17 @@
 mod game_lib;
 mod my_error;
+mod play_box;
 mod utils;
-mod player_box;
-use crate::game_lib::*;
-use crate::my_error::*;
-use crate::utils::*;
+
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
 use clap::Parser;
 use std::{fs::File, path::PathBuf};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use crate::game_lib::*;
+use crate::play_box::*;
+use crate::my_error::*;
 
 struct LogFileGuard(WorkerGuard);
 
@@ -78,8 +79,8 @@ fn setup_game(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let game_lib = GameLib::new(game_config.as_ref(), meshes.as_mut(), materials.as_mut());
-    
+    let mut game_lib = GameLib::new(game_config.as_ref(), meshes.as_mut(), materials.as_mut());
+
     commands.spawn(Camera2d);
 
     setup_game_panel(
@@ -88,6 +89,12 @@ fn setup_game(
         &game_lib,
         meshes.as_mut(),
         materials.as_mut(),
+    );
+
+    setup_play_box(
+        game_config.as_ref(),
+        &mut game_lib,
+        &mut commands,
     );
 
     commands.insert_resource(game_lib);
@@ -105,17 +112,17 @@ fn setup_game_panel(
     let box_config = &game_config.box_config;
     let box_span = box_config.size + box_config.spacing;
     let panel_config = &game_config.game_panel_config;
-    let panel_internal_width = (panel_config.size[0] as f32) * box_span + box_config.spacing;
-    let panel_internal_height = (panel_config.size[1] as f32) * box_span + box_config.spacing;
+    let panel_internal_width = (panel_config.col_count() as f32) * box_span + box_config.spacing;
+    let panel_internal_height = (panel_config.row_count() as f32) * box_span + box_config.spacing;
     let panel_width = panel_internal_width + panel_config.border_breath * 2.0;
     let panel_height = panel_internal_height + panel_config.border_breath * 2.0;
     let panel_pos = game_lib.origin_pos
-        + vec_to_vec2(&panel_config.pos)
+        + panel_config.pos()
         + Vec2::new(panel_width, panel_height) / 2.0;
 
     let panel_internal_mesh =
         meshes.add(Rectangle::new(panel_internal_width, panel_internal_height));
-    let panel_internal_material = materials.add(vec_to_color(&panel_config.background_color));
+    let panel_internal_material = materials.add(panel_config.background_color());
     commands.spawn((
         Mesh2d(panel_internal_mesh),
         MeshMaterial2d(panel_internal_material),
@@ -123,7 +130,7 @@ fn setup_game_panel(
     ));
 
     let panel_border_mesh = meshes.add(Rectangle::new(panel_width, panel_height));
-    let panel_border_material = materials.add(vec_to_color(&panel_config.border_color));
+    let panel_border_material = materials.add(panel_config.border_color());
     commands.spawn((
         Mesh2d(panel_border_mesh),
         MeshMaterial2d(panel_border_material),
@@ -131,6 +138,15 @@ fn setup_game_panel(
     ));
 
     info!("Game panel initialized");
+}
+
+fn setup_play_box(
+    game_config: &GameConfig,
+    game_lib: &mut GameLib,
+    commands: &mut Commands,
+) {
+    let index_pos: [usize; 2] = [27, 0];
+    PlayBox::add(&index_pos, game_config, game_lib, commands);
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]

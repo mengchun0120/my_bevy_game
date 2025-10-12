@@ -2,7 +2,7 @@
     "window_size": [800.0, 800.0],
     "box_size": 20,
     "game_panel_config": {
-        "size": [14, 28],
+        "size": [28, 14],
         "pos": [5.0, 5.0],
         "background_color": [76, 76, 76, 255],
         "border_color": [120, 120, 120, 255],
