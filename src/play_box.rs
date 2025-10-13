@@ -24,8 +24,6 @@ impl PlayBox {
     ) {
         let play_box = Self::new_play_box(index_pos, &game_config.box_config, game_lib);
 
-        info!("PlayBox: {:?}", play_box);
-
         play_box.add_components(&play_box.index_pos, game_config, game_lib, commands);
         commands.insert_resource(play_box);
     }

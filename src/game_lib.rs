@@ -1,17 +1,23 @@
-use crate::my_error::MyError;
 use crate::utils::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 use serde::Deserialize;
-use serde_json;
-use std::fs;
-use std::path::Path;
 
 #[derive(Debug, Deserialize, Resource)]
 pub struct GameConfig {
-    pub window_size: [f32; 2],
+    window_size: [f32; 2],
     pub game_panel_config: GamePanelConfig,
     pub box_config: BoxConfig,
+}
+
+impl GameConfig {
+    pub fn window_width(&self) -> f32 {
+        self.window_size[0]
+    }
+
+    pub fn window_height(&self) -> f32 {
+        self.window_size[1]
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,7 +67,7 @@ impl BoxConfig {
     }
 
     pub fn play_box_bitmap(&self, type_index: usize, rotate_index: usize) -> &BitMap {
-        &self.play_boxes[type_index].bitmaps[rotate_index]
+        self.play_boxes[type_index].bitmap(rotate_index)
     }
 }
 
@@ -72,9 +78,19 @@ type BitMap = [[u8; PLAY_BOX_BITMAP_SIZE]; PLAY_BOX_BITMAP_SIZE];
 
 #[derive(Debug, Deserialize)]
 pub struct PlayBoxConfig {
-    pub bitmaps: [BitMap; PLAY_BOX_ROTATE_COUNT],
+    bitmaps: [BitMap; PLAY_BOX_ROTATE_COUNT],
     pub level: u32,
-    pub color: [u8; 4],
+    color: [u8; 4],
+}
+
+impl PlayBoxConfig {
+    pub fn color(&self) -> Color {
+        vec_to_color(&self.color)
+    }
+
+    pub fn bitmap(&self, rotate_index: usize) -> &BitMap {
+        &self.bitmaps[rotate_index]
+    }
 }
 
 #[derive(Resource, Debug)]
@@ -131,7 +147,7 @@ impl GameLib {
     ) -> Vec<Handle<ColorMaterial>> {
         let mut colors: Vec<Handle<ColorMaterial>> = Vec::new();
         for b in play_boxes.iter() {
-            let material = materials.add(vec_to_color(&b.color));
+            let material = materials.add(b.color());
             colors.push(material);
         }
         colors

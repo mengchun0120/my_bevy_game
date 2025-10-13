@@ -29,8 +29,8 @@ fn main() -> Result<(), MyError> {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         resolution: WindowResolution::new(
-                            config.window_size[0],
-                            config.window_size[1],
+                            config.window_width(),
+                            config.window_height(),
                         ),
                         ..default()
                     }),
@@ -107,7 +107,7 @@ fn setup_game_panel(
     materials: &mut Assets<ColorMaterial>,
 ) {
     let box_config = &game_config.box_config;
-    let box_span = box_config.size + box_config.spacing;
+    let box_span = game_lib.box_span;
     let panel_config = &game_config.game_panel_config;
     let panel_internal_width = (panel_config.col_count() as f32) * box_span + box_config.spacing;
     let panel_internal_height = (panel_config.row_count() as f32) * box_span + box_config.spacing;
