@@ -4,7 +4,7 @@ use serde::{Deserialize, de::DeserializeOwned};
 use serde_json;
 use std::{fs::File, io::BufReader, path::Path};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Resource)]
 pub struct RectSize {
     pub width: f32,
     pub height: f32,

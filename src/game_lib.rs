@@ -5,19 +5,9 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Resource)]
 pub struct GameConfig {
-    window_size: [f32; 2],
+    pub window_size: RectSize,
     pub game_panel_config: GamePanelConfig,
     pub box_config: BoxConfig,
-}
-
-impl GameConfig {
-    pub fn window_width(&self) -> f32 {
-        self.window_size[0]
-    }
-
-    pub fn window_height(&self) -> f32 {
-        self.window_size[1]
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,7 +102,7 @@ impl GameLib {
         let panel_config = &game_config.game_panel_config;
         let box_config = &game_config.box_config;
 
-        let origin_pos = -vec_to_vec2(&game_config.window_size) / 2.0;
+        let origin_pos = -Vec2::new(game_config.window_size.width, game_config.window_size.height) / 2.0;
 
         let box_origin = origin_pos
             + vec_to_vec2(&panel_config.pos)

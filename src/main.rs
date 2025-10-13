@@ -31,8 +31,8 @@ fn main() -> Result<(), MyError> {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         resolution: WindowResolution::new(
-                            config.window_width(),
-                            config.window_height(),
+                            config.window_size.width,
+                            config.window_size.height,
                         ),
                         ..default()
                     }),
