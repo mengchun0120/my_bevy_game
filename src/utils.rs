@@ -1,8 +1,14 @@
 use crate::my_error::MyError;
 use bevy::prelude::*;
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json;
 use std::{fs::File, io::BufReader, path::Path};
+
+#[derive(Debug, Deserialize)]
+pub struct RectSize {
+    pub width: f32,
+    pub height: f32,
+}
 
 pub fn vec_to_vec2(v: &[f32; 2]) -> Vec2 {
     Vec2 { x: v[0], y: v[1] }

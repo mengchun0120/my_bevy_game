@@ -1,9 +1,11 @@
 mod game_lib;
+mod game_panel;
 mod my_error;
 mod play_box;
 mod utils;
 
 use crate::game_lib::*;
+use crate::game_panel::*;
 use crate::my_error::*;
 use crate::play_box::*;
 use crate::utils::read_json;
@@ -84,7 +86,7 @@ fn setup_game(
 
     commands.spawn(Camera2d);
 
-    setup_game_panel(
+    let game_panel = GamePanel::new(
         &mut commands,
         game_config.as_ref(),
         &game_lib,
@@ -95,45 +97,9 @@ fn setup_game(
     setup_play_box(game_config.as_ref(), &mut game_lib, &mut commands);
 
     commands.insert_resource(game_lib);
+    commands.insert_resource(game_panel);
 
     info!("Finished setting up game");
-}
-
-fn setup_game_panel(
-    commands: &mut Commands,
-    game_config: &GameConfig,
-    game_lib: &GameLib,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<ColorMaterial>,
-) {
-    let box_config = &game_config.box_config;
-    let box_span = game_lib.box_span;
-    let panel_config = &game_config.game_panel_config;
-    let panel_internal_width = (panel_config.col_count() as f32) * box_span + box_config.spacing;
-    let panel_internal_height = (panel_config.row_count() as f32) * box_span + box_config.spacing;
-    let panel_width = panel_internal_width + panel_config.border_breath * 2.0;
-    let panel_height = panel_internal_height + panel_config.border_breath * 2.0;
-    let panel_pos =
-        game_lib.origin_pos + panel_config.pos() + Vec2::new(panel_width, panel_height) / 2.0;
-
-    let panel_internal_mesh =
-        meshes.add(Rectangle::new(panel_internal_width, panel_internal_height));
-    let panel_internal_material = materials.add(panel_config.background_color());
-    commands.spawn((
-        Mesh2d(panel_internal_mesh),
-        MeshMaterial2d(panel_internal_material),
-        Transform::from_xyz(panel_pos.x, panel_pos.y, panel_config.background_z),
-    ));
-
-    let panel_border_mesh = meshes.add(Rectangle::new(panel_width, panel_height));
-    let panel_border_material = materials.add(panel_config.border_color());
-    commands.spawn((
-        Mesh2d(panel_border_mesh),
-        MeshMaterial2d(panel_border_material),
-        Transform::from_xyz(panel_pos.x, panel_pos.y, panel_config.border_z),
-    ));
-
-    info!("Game panel initialized");
 }
 
 fn setup_play_box(game_config: &GameConfig, game_lib: &mut GameLib, commands: &mut Commands) {
