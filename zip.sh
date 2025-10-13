@@ -1,0 +1,1 @@
+tar cf my_bevy_game.tar Cargo.* assets .git run.ps1 run.sh src
