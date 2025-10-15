@@ -8,7 +8,7 @@ use crate::game_lib::*;
 use crate::game_panel::*;
 use crate::my_error::*;
 use crate::play_box::*;
-use crate::utils::read_json;
+use crate::utils::*;
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
 use clap::Parser;
@@ -16,7 +16,7 @@ use std::{fs::File, path::PathBuf};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
-struct LogFileGuard(WorkerGuard);
+
 
 fn main() -> Result<(), MyError> {
     let args = Cli::parse();
@@ -56,26 +56,6 @@ struct Cli {
     config_path: PathBuf,
 }
 
-fn setup_log(log_path: &std::path::PathBuf) -> LogFileGuard {
-    let log_file = File::create(log_path).expect("Open file");
-    let (non_blocking_appender, guard) = tracing_appender::non_blocking(log_file);
-
-    let file_layer = fmt::layer()
-        .with_ansi(false) // Disable ANSI color codes for the file to keep it clean
-        .with_writer(non_blocking_appender)
-        .with_file(true)
-        .with_level(true)
-        .with_line_number(true)
-        .with_thread_names(true);
-
-    tracing_subscriber::registry()
-        .with(EnvFilter::from_default_env())
-        .with(file_layer)
-        .init();
-
-    LogFileGuard(guard)
-}
-
 fn setup_game(
     mut commands: Commands,
     game_config: Res<GameConfig>,
@@ -111,5 +91,5 @@ fn setup_play_box(game_config: &GameConfig, game_lib: &mut GameLib, commands: &m
 enum AppState {
     #[default]
     Loading,
-    Menu,
+    Playing,
 }
