@@ -50,8 +50,8 @@ impl GamePanel {
         game_config: &GameConfig,
         game_lib: &mut GameLib,
     ) {
-        let index_pos: [usize; 2] = [27, 0];
-        let play_box = PlayBox::new(&index_pos, game_config, game_lib, commands);
+        let pos = BoxPos::new(27, 0);
+        let play_box = PlayBox::new(&pos, game_config, game_lib, commands);
         self.play_box = Some(play_box);
     }
 
