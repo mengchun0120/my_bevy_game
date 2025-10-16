@@ -2,11 +2,12 @@ mod game_lib;
 mod game_panel;
 mod my_error;
 mod play_box;
+mod systems;
 mod utils;
 
 use crate::game_lib::*;
-use crate::game_panel::*;
 use crate::my_error::*;
+use crate::systems::*;
 use crate::utils::*;
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
@@ -37,7 +38,7 @@ fn main() -> Result<(), MyError> {
         .insert_resource(config)
         .init_state::<AppState>()
         .add_systems(Startup, setup_game)
-        .add_systems(Update, play_game)
+        .add_systems(Update, play_game.run_if(in_state(AppState::Playing)))
         .run();
 
     Ok(())
@@ -50,49 +51,4 @@ struct Cli {
 
     #[arg(short, long)]
     config_path: PathBuf,
-}
-
-fn setup_game(
-    mut next_state: ResMut<NextState<AppState>>,
-    mut commands: Commands,
-    game_config: Res<GameConfig>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    let mut game_lib = GameLib::new(game_config.as_ref(), meshes.as_mut(), materials.as_mut());
-
-    commands.spawn(Camera2d);
-
-    let game_panel = GamePanel::new(
-        &mut commands,
-        game_config.as_ref(),
-        &mut game_lib,
-        meshes.as_mut(),
-        materials.as_mut(),
-    );
-
-    commands.insert_resource(game_lib);
-    commands.insert_resource(game_panel);
-
-    next_state.set(AppState::Playing);
-
-    info!("Finished setting up game");
-}
-
-fn play_game(
-    mut commands: Commands,
-    game_config: Res<GameConfig>,
-    mut game_lib: ResMut<GameLib>,
-    mut game_panel: ResMut<GamePanel>,
-) {
-    if game_panel.play_box.is_none() {
-        game_panel.new_play_box(&mut commands, game_config.as_ref(), game_lib.as_mut());
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-enum AppState {
-    #[default]
-    Loading,
-    Playing,
 }
