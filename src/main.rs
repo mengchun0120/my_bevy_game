@@ -7,16 +7,11 @@ mod utils;
 use crate::game_lib::*;
 use crate::game_panel::*;
 use crate::my_error::*;
-use crate::play_box::*;
 use crate::utils::*;
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
 use clap::Parser;
-use std::{fs::File, path::PathBuf};
-use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
-
-
+use std::path::PathBuf;
 
 fn main() -> Result<(), MyError> {
     let args = Cli::parse();
@@ -42,6 +37,7 @@ fn main() -> Result<(), MyError> {
         .insert_resource(config)
         .init_state::<AppState>()
         .add_systems(Startup, setup_game)
+        .add_systems(Update, play_game)
         .run();
 
     Ok(())
@@ -57,6 +53,7 @@ struct Cli {
 }
 
 fn setup_game(
+    mut next_state: ResMut<NextState<AppState>>,
     mut commands: Commands,
     game_config: Res<GameConfig>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -69,22 +66,28 @@ fn setup_game(
     let game_panel = GamePanel::new(
         &mut commands,
         game_config.as_ref(),
-        &game_lib,
+        &mut game_lib,
         meshes.as_mut(),
         materials.as_mut(),
     );
 
-    setup_play_box(game_config.as_ref(), &mut game_lib, &mut commands);
-
     commands.insert_resource(game_lib);
     commands.insert_resource(game_panel);
+
+    next_state.set(AppState::Playing);
 
     info!("Finished setting up game");
 }
 
-fn setup_play_box(game_config: &GameConfig, game_lib: &mut GameLib, commands: &mut Commands) {
-    let index_pos: [usize; 2] = [27, 0];
-    PlayBox::add(&index_pos, game_config, game_lib, commands);
+fn play_game(
+    mut commands: Commands,
+    game_config: Res<GameConfig>,
+    mut game_lib: ResMut<GameLib>,
+    mut game_panel: ResMut<GamePanel>,
+) {
+    if game_panel.play_box.is_none() {
+        game_panel.new_play_box(&mut commands, game_config.as_ref(), game_lib.as_mut());
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]

@@ -1,9 +1,12 @@
 use crate::game_lib::*;
+use crate::play_box::*;
 use crate::utils::*;
 use bevy::prelude::*;
 
 #[derive(Resource, Debug)]
-pub struct GamePanel {}
+pub struct GamePanel {
+    pub play_box: Option<PlayBox>,
+}
 
 impl GamePanel {
     pub fn new(
@@ -19,12 +22,37 @@ impl GamePanel {
             + panel_config.pos()
             + Vec2::new(total_size.width, total_size.height) / 2.0;
 
-        Self::add_panel_internal(&internal_size, &panel_pos, panel_config, commands, meshes, materials);
-        Self::add_panel_border(&total_size, &panel_pos, panel_config, commands, meshes, materials);
+        Self::add_panel_internal(
+            &internal_size,
+            &panel_pos,
+            panel_config,
+            commands,
+            meshes,
+            materials,
+        );
+        Self::add_panel_border(
+            &total_size,
+            &panel_pos,
+            panel_config,
+            commands,
+            meshes,
+            materials,
+        );
 
         info!("Game panel initialized");
 
-        Self {}
+        Self { play_box: None }
+    }
+
+    pub fn new_play_box(
+        &mut self,
+        commands: &mut Commands,
+        game_config: &GameConfig,
+        game_lib: &mut GameLib,
+    ) {
+        let index_pos: [usize; 2] = [27, 0];
+        let play_box = PlayBox::new(&index_pos, game_config, game_lib, commands);
+        self.play_box = Some(play_box);
     }
 
     fn calculate_size(game_config: &GameConfig, game_lib: &GameLib) -> (RectSize, RectSize) {
@@ -53,8 +81,7 @@ impl GamePanel {
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
     ) {
-        let mesh =
-            meshes.add(Rectangle::new(size.width, size.height));
+        let mesh = meshes.add(Rectangle::new(size.width, size.height));
         let material = materials.add(panel_config.background_color());
         commands.spawn((
             Mesh2d(mesh),

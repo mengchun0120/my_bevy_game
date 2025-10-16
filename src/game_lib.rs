@@ -59,6 +59,14 @@ impl BoxConfig {
     pub fn play_box_bitmap(&self, type_index: usize, rotate_index: usize) -> &BitMap {
         self.play_boxes[type_index].bitmap(rotate_index)
     }
+
+    pub fn rand_type_index<R: Rng>(&self, rng: &mut R) -> usize {
+        rng.random_range(0..self.play_box_type_count())
+    }
+
+    pub fn rand_rotate_index<R: Rng>(rng: &mut R) -> usize {
+        rng.random_range(0..PLAY_BOX_ROTATE_COUNT)
+    }
 }
 
 pub const PLAY_BOX_BITMAP_SIZE: usize = 4;
@@ -102,7 +110,10 @@ impl GameLib {
         let panel_config = &game_config.game_panel_config;
         let box_config = &game_config.box_config;
 
-        let origin_pos = -Vec2::new(game_config.window_size.width, game_config.window_size.height) / 2.0;
+        let origin_pos = -Vec2::new(
+            game_config.window_size.width,
+            game_config.window_size.height,
+        ) / 2.0;
 
         let box_origin = origin_pos
             + vec_to_vec2(&panel_config.pos)

@@ -16,32 +16,21 @@ pub struct PlayBox {
 }
 
 impl PlayBox {
-    pub fn add(
+    pub fn new(
         index_pos: &[usize; 2],
         game_config: &GameConfig,
         game_lib: &mut GameLib,
         commands: &mut Commands,
-    ) {
-        let play_box = Self::new_play_box(index_pos, &game_config.box_config, game_lib);
+    ) -> Self {
+        let play_box = PlayBox {
+            index_pos: index_pos.clone(),
+            type_index: game_config.box_config.rand_type_index(&mut game_lib.rng),
+            rotate_index: BoxConfig::rand_rotate_index(&mut game_lib.rng),
+        };
 
         play_box.add_components(&play_box.index_pos, game_config, game_lib, commands);
-        commands.insert_resource(play_box);
-    }
 
-    fn new_play_box(
-        index_pos: &[usize; 2],
-        box_config: &BoxConfig,
-        game_lib: &mut GameLib,
-    ) -> Self {
-        let type_index = game_lib
-            .rng
-            .random_range(0..box_config.play_box_type_count());
-        let rotate_index = game_lib.rng.random_range(0..PLAY_BOX_ROTATE_COUNT);
-        Self {
-            index_pos: index_pos.clone(),
-            type_index,
-            rotate_index,
-        }
+        play_box
     }
 
     fn add_components(
