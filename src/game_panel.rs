@@ -6,6 +6,7 @@ use bevy::prelude::*;
 #[derive(Resource, Debug)]
 pub struct GamePanel {
     pub play_box: Option<PlayBox>,
+    pub inactive_boxes: Vec<Vec<u8>>,
 }
 
 impl GamePanel {
@@ -39,9 +40,14 @@ impl GamePanel {
             materials,
         );
 
+        let panel = Self {
+            play_box: None,
+            inactive_boxes: vec![vec![0; panel_config.col_count()]; panel_config.row_count()],
+        };
+
         info!("Game panel initialized");
 
-        Self { play_box: None }
+        panel
     }
 
     pub fn new_play_box(

@@ -18,7 +18,7 @@ impl BoxPos {
         Self { row, col }
     }
 
-    pub fn to_world(
+    pub fn to_panel_pos(
         &self,
         game_config: &GameConfig,
         game_lib: &GameLib,
@@ -61,7 +61,7 @@ impl PlayBox {
         game_lib: &mut GameLib,
         commands: &mut Commands,
     ) {
-        let init_pos = self.pos.to_world(game_config, game_lib);
+        let init_pos = self.pos.to_panel_pos(game_config, game_lib);
         let color = &game_lib.box_colors[self.type_index];
         let box_span = game_lib.box_span;
         let box_config = &game_config.box_config;
