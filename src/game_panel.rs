@@ -56,7 +56,7 @@ impl GamePanel {
         game_config: &GameConfig,
         game_lib: &mut GameLib,
     ) {
-        let pos = BoxPos::new(0, 0);
+        let pos = BoxPos::new(27, 0);
         let play_box = PlayBox::new(&pos, game_config, game_lib, commands);
         self.play_box = Some(play_box);
     }
@@ -68,7 +68,7 @@ impl GamePanel {
 
         let internal_size = RectSize {
             width: (panel_config.col_count() as f32) * box_span + spacing,
-            height: (panel_config.row_count() as f32) * box_span + spacing,
+            height: (panel_config.main_rows as f32) * box_span + spacing,
         };
 
         let total_size = RectSize {

@@ -75,12 +75,12 @@ impl PlayBox {
             let mut x = init_pos.x;
             pos.col = self.pos.col;
             for col in 0..PLAY_BOX_BITMAP_SIZE {
-                let visibility = if panel_config.is_visible(&pos) {
-                    Visibility::Visible
-                } else {
-                    Visibility::Hidden
-                };
                 if bitmap[row][col] != 0 {
+                    let visibility = if panel_config.is_visible(&pos) {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Hidden
+                    };
                     let e = commands.spawn((
                         Mesh2d(game_lib.box_mesh.clone()),
                         MeshMaterial2d(color.clone()),
