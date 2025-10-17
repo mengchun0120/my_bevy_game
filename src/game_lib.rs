@@ -16,6 +16,7 @@ pub struct GamePanelConfig {
     pos: [f32; 2],
     background_color: [u8; 4],
     border_color: [u8; 4],
+    pub main_rows: usize,
     pub border_breath: f32,
     pub background_z: f32,
     pub border_z: f32,

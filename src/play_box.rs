@@ -7,25 +7,22 @@ pub enum BoxState {
     Inactive,
 }
 
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Component, Debug, Clone)]
 pub struct BoxPos {
-    pub row: usize,
-    pub col: usize,
+    pub row: i32,
+    pub col: i32,
 }
 
 impl BoxPos {
-    pub fn new(row: usize, col: usize) -> Self {
+    pub fn new(row: i32, col: i32) -> Self {
         Self { row, col }
     }
 
     pub fn to_panel_pos(
         &self,
-        game_config: &GameConfig,
         game_lib: &GameLib,
     ) -> Vec2 {
-        let x = self.col as f32;
-        let y = (game_config.game_panel_config.row_count() - self.row - 1) as f32;
-        let offset = Vec2::new(x, y) * game_lib.box_span;
+        let offset = Vec2::new(self.col as f32, self.row as f32) * game_lib.box_span;
         game_lib.box_origin + offset
     }
 }
@@ -61,7 +58,7 @@ impl PlayBox {
         game_lib: &mut GameLib,
         commands: &mut Commands,
     ) {
-        let init_pos = self.pos.to_panel_pos(game_config, game_lib);
+        let init_pos = self.pos.to_panel_pos(game_lib);
         let color = &game_lib.box_colors[self.type_index];
         let box_span = game_lib.box_span;
         let box_config = &game_config.box_config;
