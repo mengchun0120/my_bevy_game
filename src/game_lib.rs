@@ -1,4 +1,5 @@
 use crate::utils::*;
+use crate::play_box::BoxPos;
 use bevy::prelude::*;
 use rand::prelude::*;
 use serde::Deserialize;
@@ -41,6 +42,11 @@ impl GamePanelConfig {
 
     pub fn border_color(&self) -> Color {
         vec_to_color(&self.border_color)
+    }
+
+    pub fn is_visible(&self, pos: &BoxPos) -> bool {
+        (0..self.col_count() as i32).contains(&pos.col) &&
+        (0..self.main_rows as i32).contains(&pos.row)
     }
 }
 

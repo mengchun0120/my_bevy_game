@@ -32,6 +32,7 @@ pub struct PlayBox {
     pub pos: BoxPos,
     pub type_index: usize,
     pub rotate_index: usize,
+    entities: Vec<Entity>,
 }
 
 impl PlayBox {
@@ -41,10 +42,11 @@ impl PlayBox {
         game_lib: &mut GameLib,
         commands: &mut Commands,
     ) -> Self {
-        let play_box = PlayBox {
+        let mut play_box = PlayBox {
             pos: pos.clone(),
             type_index: game_config.box_config.rand_type_index(&mut game_lib.rng),
             rotate_index: BoxConfig::rand_rotate_index(&mut game_lib.rng),
+            entities: Vec::new(),
         };
 
         play_box.add_components(game_config, game_lib, commands);
@@ -53,7 +55,7 @@ impl PlayBox {
     }
 
     fn add_components(
-        &self,
+        &mut self,
         game_config: &GameConfig,
         game_lib: &mut GameLib,
         commands: &mut Commands,
@@ -62,24 +64,38 @@ impl PlayBox {
         let color = &game_lib.box_colors[self.type_index];
         let box_span = game_lib.box_span;
         let box_config = &game_config.box_config;
+        let panel_config = &game_config.game_panel_config;
         let bitmap = box_config.play_box_bitmap(self.type_index, self.rotate_index);
         let mut y = init_pos.y;
         let z = box_config.z;
+        let mut pos = self.pos.clone();
 
+        self.entities.clear();
         for row in (0..PLAY_BOX_BITMAP_SIZE).rev() {
             let mut x = init_pos.x;
+            pos.col = self.pos.col;
             for col in 0..PLAY_BOX_BITMAP_SIZE {
+                let visibility = if panel_config.is_visible(&pos) {
+                    Visibility::Visible
+                } else {
+                    Visibility::Hidden
+                };
                 if bitmap[row][col] != 0 {
-                    commands.spawn((
+                    let e = commands.spawn((
                         Mesh2d(game_lib.box_mesh.clone()),
                         MeshMaterial2d(color.clone()),
                         Transform::from_xyz(x, y, z),
                         BoxState::Active,
+                        pos.clone(),
+                        visibility,
                     ));
+                    self.entities.push(e.id());
                 }
                 x += box_span;
+                pos.col += 1;
             }
             y += box_span;
+            pos.row += 1;
         }
     }
 }
