@@ -9,6 +9,12 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 pub struct LogFileGuard(WorkerGuard);
 
 #[derive(Debug, Deserialize, Resource)]
+pub struct ISize {
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Deserialize, Resource)]
 pub struct RectSize {
     pub width: f32,
     pub height: f32,
@@ -51,4 +57,24 @@ pub fn setup_log(log_path: &std::path::PathBuf) -> LogFileGuard {
         .init();
 
     LogFileGuard(guard)
+}
+
+pub fn set_opt_min<T: PartialOrd + Clone>(prev_value: &mut Option<T>, new_value: &T) {
+    if let Some(value) = prev_value {
+        if new_value < value {
+            prev_value.replace(new_value.clone());
+        }
+    } else {
+        prev_value.replace(new_value.clone());
+    }
+}
+
+pub fn set_opt_max<T: PartialOrd + Clone>(prev_value: &mut Option<T>, new_value: &T) {
+    if let Some(value) = prev_value {
+        if new_value > value {
+            prev_value.replace(new_value.clone());
+        }
+    } else {
+        prev_value.replace(new_value.clone());
+    }
 }

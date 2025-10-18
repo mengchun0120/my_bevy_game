@@ -30,6 +30,7 @@ fn main() -> Result<(), MyError> {
                             config.window_size.width,
                             config.window_size.height,
                         ),
+                        resizable: false,
                         ..default()
                     }),
                     ..default()

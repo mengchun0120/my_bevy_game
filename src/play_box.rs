@@ -18,10 +18,7 @@ impl BoxPos {
         Self { row, col }
     }
 
-    pub fn to_panel_pos(
-        &self,
-        game_lib: &GameLib,
-    ) -> Vec2 {
+    pub fn to_panel_pos(&self, game_lib: &GameLib) -> Vec2 {
         let offset = Vec2::new(self.col as f32, self.row as f32) * game_lib.box_span;
         game_lib.box_origin + offset
     }

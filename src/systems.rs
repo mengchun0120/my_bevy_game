@@ -1,6 +1,6 @@
 use crate::game_lib::*;
 use crate::game_panel::*;
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowResized};
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {
