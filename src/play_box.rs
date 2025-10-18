@@ -33,35 +33,27 @@ pub struct PlayBox {
 }
 
 impl PlayBox {
-    pub fn new(
-        pos: &BoxPos,
-        game_config: &GameConfig,
-        game_lib: &mut GameLib,
-        commands: &mut Commands,
-    ) -> Self {
+    pub fn new(pos: &BoxPos, game_lib: &mut GameLib, commands: &mut Commands) -> Self {
+        let config = &game_lib.config;
         let mut play_box = PlayBox {
             pos: pos.clone(),
-            type_index: game_config.box_config.rand_type_index(&mut game_lib.rng),
+            type_index: config.box_config.rand_type_index(&mut game_lib.rng),
             rotate_index: BoxConfig::rand_rotate_index(&mut game_lib.rng),
             entities: Vec::new(),
         };
 
-        play_box.add_components(game_config, game_lib, commands);
+        play_box.add_components(game_lib, commands);
 
         play_box
     }
 
-    fn add_components(
-        &mut self,
-        game_config: &GameConfig,
-        game_lib: &mut GameLib,
-        commands: &mut Commands,
-    ) {
+    fn add_components(&mut self, game_lib: &mut GameLib, commands: &mut Commands) {
+        let config = &game_lib.config;
         let init_pos = self.pos.to_panel_pos(game_lib);
         let color = &game_lib.box_colors[self.type_index];
         let box_span = game_lib.box_span;
-        let box_config = &game_config.box_config;
-        let panel_config = &game_config.game_panel_config;
+        let box_config = &config.box_config;
+        let panel_config = &config.game_panel_config;
         let bitmap = box_config.play_box_bitmap(self.type_index, self.rotate_index);
         let mut y = init_pos.y;
         let z = box_config.z;

@@ -1,8 +1,10 @@
-use crate::utils::*;
+use crate::my_error::*;
 use crate::play_box::BoxPos;
+use crate::utils::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 use serde::Deserialize;
+use std::path::Path;
 
 #[derive(Debug, Deserialize, Resource)]
 pub struct GameConfig {
@@ -45,8 +47,8 @@ impl GamePanelConfig {
     }
 
     pub fn is_visible(&self, pos: &BoxPos) -> bool {
-        (0..self.col_count() as i32).contains(&pos.col) &&
-        (0..self.main_rows as i32).contains(&pos.row)
+        (0..self.col_count() as i32).contains(&pos.col)
+            && (0..self.main_rows as i32).contains(&pos.row)
     }
 }
 
@@ -64,7 +66,7 @@ impl BoxConfig {
     }
 
     pub fn play_box_bitmap(&self, type_index: usize, rotate_index: usize) -> &BitMap {
-        self.play_boxes[type_index].bitmap(rotate_index)
+        &self.play_boxes[type_index].bitmaps[rotate_index]
     }
 
     pub fn rand_type_index<R: Rng>(&self, rng: &mut R) -> usize {
@@ -81,46 +83,6 @@ pub const PLAY_BOX_ROTATE_COUNT: usize = 4;
 
 type BitMap = [[u8; PLAY_BOX_BITMAP_SIZE]; PLAY_BOX_BITMAP_SIZE];
 
-fn bitmap_size(bitmap: &BitMap) -> ISize {
-    let mut min_col: Option<usize> = None;
-    let mut max_col: Option<usize> = None;
-    let mut min_row: Option<usize> = None;
-    let mut max_row: Option<usize> = None;
-
-    for row in 0..bitmap.len() {
-        let mut empty_row = true;
-        for col in 0..bitmap[row].len() {
-            if bitmap[row][col] != 0 {
-                set_opt_min(&mut min_col, &col);
-                set_opt_max(&mut max_col, &col);
-            }
-            empty_row = false;
-        }
-
-        if !empty_row {
-            set_opt_min(&mut min_row, &row);
-            set_opt_max(&mut max_row, &row);
-        }
-    }
-
-    let width = if let (Some(min), Some(max)) = (min_col, max_col) {
-        max - min + 1
-    } else {
-        0
-    };
-
-    let height = if let (Some(min), Some(max)) = (min_row, max_row) {
-        max - min + 1
-    } else {
-        0
-    };
-
-    ISize { 
-        width: width as u32, 
-        height: height as u32,
-    }    
-}
-
 #[derive(Debug, Deserialize)]
 pub struct PlayBoxConfig {
     pub bitmaps: [BitMap; PLAY_BOX_ROTATE_COUNT],
@@ -129,25 +91,17 @@ pub struct PlayBoxConfig {
 }
 
 impl PlayBoxConfig {
-    pub fn color(&self) -> Color {
-        vec_to_color(&self.color)
-    }
-
-    pub fn bitmap(&self, rotate_index: usize) -> &BitMap {
-        &self.bitmaps[rotate_index]
-    }
-
-    pub fn size(&self, rotate_index: usize) -> ISize {
+    pub fn bmp_size(&self, rotate_index: usize) -> ISize {
         let mut min_col: Option<usize> = None;
         let mut max_col: Option<usize> = None;
         let mut min_row: Option<usize> = None;
         let mut max_row: Option<usize> = None;
-        let bitmap = self.bitmap(rotate_index);
+        let bmp = self.bitmaps[rotate_index];
 
-        for row in 0..bitmap.len() {
+        for row in 0..PLAY_BOX_BITMAP_SIZE {
             let mut empty_row = true;
-            for col in 0..bitmap[row].len() {
-                if bitmap[row][col] != 0 {
+            for col in 0..PLAY_BOX_BITMAP_SIZE {
+                if bmp[row][col] != 0 {
                     set_opt_min(&mut min_col, &col);
                     set_opt_max(&mut max_col, &col);
                 }
@@ -172,19 +126,20 @@ impl PlayBoxConfig {
             0
         };
 
-        ISize { 
-            width: width as u32, 
+        ISize {
+            width: width as u32,
             height: height as u32,
         }
     }
 
-    pub fn height(&self, rotate_index: usize) -> usize {
-        todo!()
+    pub fn color(&self) -> Color {
+        vec_to_color(&self.color)
     }
 }
 
 #[derive(Resource, Debug)]
 pub struct GameLib {
+    pub config: GameConfig,
     pub origin_pos: Vec2,
     pub box_origin: Vec2,
     pub box_span: f32,
@@ -195,17 +150,19 @@ pub struct GameLib {
 }
 
 impl GameLib {
-    pub fn new(
-        game_config: &GameConfig,
+    pub fn new<P: AsRef<Path>>(
+        path: P,
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
-    ) -> GameLib {
-        let panel_config = &game_config.game_panel_config;
-        let box_config = &game_config.box_config;
+    ) -> Result<Self, MyError> {
+        let config: GameConfig = read_json(path)?;
+
+        let panel_config = &config.game_panel_config;
+        let box_config = &config.box_config;
 
         let origin_pos = -Vec2::new(
-            game_config.window_size.width as f32,
-            game_config.window_size.height as f32,
+            config.window_size.width as f32,
+            config.window_size.height as f32,
         ) / 2.0;
 
         let box_origin = origin_pos
@@ -224,6 +181,7 @@ impl GameLib {
         let rng = StdRng::from_os_rng();
 
         let game_lib = GameLib {
+            config,
             origin_pos,
             box_origin,
             box_span,
@@ -235,7 +193,7 @@ impl GameLib {
 
         info!("GameLib initialized");
 
-        game_lib
+        Ok(game_lib)
     }
 
     fn init_box_colors(
@@ -256,7 +214,7 @@ impl GameLib {
         for config in play_boxes {
             let mut sizes: Vec<ISize> = Vec::new();
             for rotate_index in 0..PLAY_BOX_ROTATE_COUNT {
-                sizes.push(bitmap_size(config.bitmap(rotate_index)));
+                sizes.push(config.bmp_size(rotate_index));
             }
             result.push(sizes);
         }

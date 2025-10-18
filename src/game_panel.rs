@@ -12,13 +12,13 @@ pub struct GamePanel {
 impl GamePanel {
     pub fn new(
         commands: &mut Commands,
-        game_config: &GameConfig,
         game_lib: &GameLib,
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
     ) -> Self {
-        let panel_config = &game_config.game_panel_config;
-        let (internal_size, total_size) = Self::calculate_size(game_config, game_lib);
+        let config = &game_lib.config;
+        let panel_config = &config.game_panel_config;
+        let (internal_size, total_size) = Self::calculate_size(config, game_lib);
         let panel_pos = game_lib.origin_pos
             + panel_config.pos()
             + Vec2::new(total_size.width, total_size.height) / 2.0;
@@ -50,14 +50,9 @@ impl GamePanel {
         panel
     }
 
-    pub fn new_play_box(
-        &mut self,
-        commands: &mut Commands,
-        game_config: &GameConfig,
-        game_lib: &mut GameLib,
-    ) {
+    pub fn new_play_box(&mut self, commands: &mut Commands, game_lib: &mut GameLib) {
         let pos = BoxPos::new(26, 0);
-        let play_box = PlayBox::new(&pos, game_config, game_lib, commands);
+        let play_box = PlayBox::new(&pos, game_lib, commands);
         self.play_box = Some(play_box);
     }
 

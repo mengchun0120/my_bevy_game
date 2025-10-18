@@ -1,10 +1,24 @@
 use crate::my_error::MyError;
 use bevy::prelude::*;
+use clap::Parser;
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json;
-use std::{fs::File, io::BufReader, path::Path};
+use std::{
+    fs::File,
+    io::BufReader,
+    path::{Path, PathBuf},
+};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+
+#[derive(Parser, Resource)]
+pub struct Args {
+    #[arg(short, long)]
+    pub log_path: PathBuf,
+
+    #[arg(short, long)]
+    pub config_path: PathBuf,
+}
 
 pub struct LogFileGuard(WorkerGuard);
 
@@ -39,8 +53,8 @@ where
     Ok(result)
 }
 
-pub fn setup_log(log_path: &std::path::PathBuf) -> LogFileGuard {
-    let log_file = File::create(log_path).expect("Open file");
+pub fn setup_log<P: AsRef<Path>>(log_path: P) -> LogFileGuard {
+    let log_file = File::create(log_path.as_ref()).expect("Open file");
     let (non_blocking_appender, guard) = tracing_appender::non_blocking(log_file);
 
     let file_layer = fmt::layer()
