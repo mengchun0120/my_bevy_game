@@ -51,9 +51,12 @@ impl GamePanel {
     }
 
     pub fn new_play_box(&mut self, commands: &mut Commands, game_lib: &mut GameLib) {
-        let pos = BoxPos::new(26, 0);
-        let play_box = PlayBox::new(&pos, game_lib, commands);
+        let play_box = PlayBox::new(game_lib, commands);
         self.play_box = Some(play_box);
+    }
+
+    pub fn can_move_to(&self, dest: &BoxPos, play_box: &PlayBox) -> bool {
+        todo!()
     }
 
     fn calculate_size(game_config: &GameConfig, game_lib: &GameLib) -> (RectSize, RectSize) {

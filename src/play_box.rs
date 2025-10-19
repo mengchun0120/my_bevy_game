@@ -33,18 +33,37 @@ pub struct PlayBox {
 }
 
 impl PlayBox {
-    pub fn new(pos: &BoxPos, game_lib: &mut GameLib, commands: &mut Commands) -> Self {
+    pub fn new(game_lib: &mut GameLib, commands: &mut Commands) -> Self {
         let config = &game_lib.config;
+        let type_index = config.box_config.rand_type_index(&mut game_lib.rng);
+        let rotate_index = BoxConfig::rand_rotate_index(&mut game_lib.rng);
+        let pos = Self::init_pos(game_lib, type_index, rotate_index);
+
         let mut play_box = PlayBox {
-            pos: pos.clone(),
-            type_index: config.box_config.rand_type_index(&mut game_lib.rng),
-            rotate_index: BoxConfig::rand_rotate_index(&mut game_lib.rng),
+            pos,
+            type_index,
+            rotate_index,
             entities: Vec::new(),
         };
 
         play_box.add_components(game_lib, commands);
 
         play_box
+    }
+
+    fn init_pos(game_lib: &GameLib, type_index: usize, rotate_index: usize) -> BoxPos {
+        let box_size = &game_lib.box_sizes[type_index][rotate_index];
+        let panel_config = &game_lib.config.game_panel_config;
+        let col = (panel_config.col_count() as u32 - box_size.width) / 2;
+        let row = game_lib.config.game_panel_config.main_rows as u32 - box_size.height;
+        info!(
+            "type={} rotate={} box_size={:?} row={} col={}",
+            type_index, rotate_index, box_size, row, col
+        );
+        BoxPos {
+            row: row as i32,
+            col: col as i32,
+        }
     }
 
     fn add_components(&mut self, game_lib: &mut GameLib, commands: &mut Commands) {

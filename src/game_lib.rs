@@ -104,8 +104,8 @@ impl PlayBoxConfig {
                 if bmp[row][col] != 0 {
                     set_opt_min(&mut min_col, &col);
                     set_opt_max(&mut max_col, &col);
+                    empty_row = false;
                 }
-                empty_row = false;
             }
 
             if !empty_row {
