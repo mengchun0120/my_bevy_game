@@ -55,8 +55,29 @@ impl GamePanel {
         self.play_box = Some(play_box);
     }
 
-    pub fn can_move_to(&self, dest: &BoxPos, play_box: &PlayBox) -> bool {
-        todo!()
+    pub fn can_move_to(&self, dest: &BoxPos, play_box: &PlayBox, game_lib: &GameLib) -> bool {
+        let config = &game_lib.config;
+        let bmp = config.box_config.play_box_bitmap(play_box.type_index, play_box.rotate_index);
+        let panel_config = &config.game_panel_config;
+        let mut row = dest.row;
+
+        for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
+            let mut col = dest.col;
+            for c in 0..PLAY_BOX_BITMAP_SIZE {
+                if bmp[r][c] == 0 {
+                    continue;
+                }
+
+                if !panel_config.is_inside(row, col) || self.panel[row as usize][col as usize].is_some() {
+                    return false;
+                }
+
+                col += 1;
+            }
+            row += 1;
+        }
+
+        return true;
     }
 
     fn calculate_size(game_config: &GameConfig, game_lib: &GameLib) -> (RectSize, RectSize) {

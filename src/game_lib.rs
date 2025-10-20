@@ -46,9 +46,9 @@ impl GamePanelConfig {
         vec_to_color(&self.border_color)
     }
 
-    pub fn is_visible(&self, pos: &BoxPos) -> bool {
-        (0..self.col_count() as i32).contains(&pos.col)
-            && (0..self.main_rows as i32).contains(&pos.row)
+    pub fn is_inside(&self, row: i32, col: i32) -> bool {
+        (0..self.col_count() as i32).contains(&col)
+            && (0..self.main_rows as i32).contains(&row)
     }
 }
 

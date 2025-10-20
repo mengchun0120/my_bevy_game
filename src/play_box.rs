@@ -84,7 +84,7 @@ impl PlayBox {
             pos.col = self.pos.col;
             for col in 0..PLAY_BOX_BITMAP_SIZE {
                 if bitmap[row][col] != 0 {
-                    let visibility = if panel_config.is_visible(&pos) {
+                    let visibility = if panel_config.is_inside(pos.row, pos.col) {
                         Visibility::Visible
                     } else {
                         Visibility::Hidden
