@@ -1,11 +1,8 @@
 use crate::game_lib::*;
 use bevy::prelude::*;
 
-#[derive(Component, Debug)]
-pub enum BoxState {
-    Active,
-    Inactive,
-}
+#[derive(Resource, Debug)]
+pub struct PlayBoxRecord(pub Option<PlayBox>);
 
 #[derive(Resource, Component, Debug, Clone)]
 pub struct BoxPos {
@@ -21,6 +18,11 @@ impl BoxPos {
     pub fn to_panel_pos(&self, game_lib: &GameLib) -> Vec2 {
         let offset = Vec2::new(self.col as f32, self.row as f32) * game_lib.box_span;
         game_lib.box_origin + offset
+    }
+
+    pub fn reset(&mut self, row: i32, col: i32) {
+        self.row = row;
+        self.col = col;
     }
 }
 
@@ -51,15 +53,17 @@ impl PlayBox {
         play_box
     }
 
+    pub fn move_to(&mut self, dest: BoxPos, commands: &mut Commands, game_lib: &GameLib) {
+        let delta = dest.to_panel_pos(game_lib) - self.pos.to_panel_pos(game_lib);
+        self.pos = dest;
+        self.update_position(delta, commands);
+    }
+
     fn init_pos(game_lib: &GameLib, type_index: usize, rotate_index: usize) -> BoxPos {
         let box_size = &game_lib.box_sizes[type_index][rotate_index];
         let panel_config = &game_lib.config.game_panel_config;
         let col = (panel_config.col_count() as u32 - box_size.width) / 2;
         let row = game_lib.config.game_panel_config.main_rows as u32 - box_size.height;
-        info!(
-            "type={} rotate={} box_size={:?} row={} col={}",
-            type_index, rotate_index, box_size, row, col
-        );
         BoxPos {
             row: row as i32,
             col: col as i32,
@@ -93,7 +97,6 @@ impl PlayBox {
                         Mesh2d(game_lib.box_mesh.clone()),
                         MeshMaterial2d(color.clone()),
                         Transform::from_xyz(x, y, z),
-                        BoxState::Active,
                         pos.clone(),
                         visibility,
                     ));
@@ -104,6 +107,19 @@ impl PlayBox {
             }
             y += box_span;
             pos.row += 1;
+        }
+    }
+
+    fn update_position(&mut self, delta: Vec2, commands: &mut Commands) {
+        let change_pos = move |mut t: Mut<'_, Transform>| {
+            t.translation.x += delta.x;
+            t.translation.y += delta.y;
+        };
+
+        for e in self.entities.iter() {
+            commands.entity(e.clone())
+                .entry::<Transform>()
+                .and_modify(change_pos);
         }
     }
 }

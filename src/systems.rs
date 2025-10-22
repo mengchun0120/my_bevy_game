@@ -1,6 +1,7 @@
 use crate::game_lib::*;
 use crate::game_panel::*;
 use crate::utils::*;
+use crate::play_box::*;
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -49,6 +50,7 @@ pub fn setup_game(
 
     commands.insert_resource(game_lib);
     commands.insert_resource(game_panel);
+    commands.insert_resource(PlayBoxRecord(None));
 
     next_state.set(AppState::Playing);
 
@@ -58,9 +60,41 @@ pub fn setup_game(
 pub fn play_game(
     mut commands: Commands,
     mut game_lib: ResMut<GameLib>,
-    mut game_panel: ResMut<GamePanel>,
+    game_panel: Res<GamePanel>,
+    mut play_box: ResMut<PlayBoxRecord>,
+    keys: Res<ButtonInput<KeyCode>>,
 ) {
-    if game_panel.play_box.is_none() {
-        game_panel.new_play_box(&mut commands, game_lib.as_mut());
+    if let Some(b) = &mut play_box.0 {
+        if keys.just_pressed(KeyCode::ArrowLeft) {
+            try_move_left(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
+        } else if keys.just_pressed(KeyCode::ArrowRight) {
+            try_move_right(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
+        }
+    } else {
+        play_box.0 = Some(PlayBox::new(game_lib.as_mut(), &mut commands));
+    }
+}
+
+fn try_move_left(
+    play_box: &mut PlayBox,
+    commands: &mut Commands,
+    game_lib: &GameLib,
+    game_panel: &GamePanel,
+) {
+    let dest = BoxPos::new(play_box.pos.row, play_box.pos.col - 1);
+    if game_panel.can_move_to(&dest, play_box, game_lib) {
+        play_box.move_to(dest, commands, game_lib);
+    }
+}
+
+fn try_move_right(
+    play_box: &mut PlayBox,
+    commands: &mut Commands,
+    game_lib: &GameLib,
+    game_panel: &GamePanel,
+) {
+    let dest = BoxPos::new(play_box.pos.row, play_box.pos.col + 1);
+    if game_panel.can_move_to(&dest, play_box, game_lib) {
+        play_box.move_to(dest, commands, game_lib);
     }
 }

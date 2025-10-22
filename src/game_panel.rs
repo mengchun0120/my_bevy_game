@@ -5,7 +5,6 @@ use bevy::prelude::*;
 
 #[derive(Resource, Debug)]
 pub struct GamePanel {
-    pub play_box: Option<PlayBox>,
     pub panel: Vec<Vec<Option<Entity>>>,
 }
 
@@ -41,18 +40,12 @@ impl GamePanel {
         );
 
         let panel = Self {
-            play_box: None,
             panel: vec![vec![None; panel_config.col_count()]; panel_config.row_count()],
         };
 
         info!("Game panel initialized");
 
         panel
-    }
-
-    pub fn new_play_box(&mut self, commands: &mut Commands, game_lib: &mut GameLib) {
-        let play_box = PlayBox::new(game_lib, commands);
-        self.play_box = Some(play_box);
     }
 
     pub fn can_move_to(&self, dest: &BoxPos, play_box: &PlayBox, game_lib: &GameLib) -> bool {
