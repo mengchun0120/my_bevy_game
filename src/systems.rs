@@ -37,7 +37,6 @@ pub fn setup_game(
     window
         .resolution
         .set(window_size.width as f32, window_size.height as f32);
-    window.resizable = false;
 
     commands.spawn(Camera2d);
 
@@ -48,6 +47,9 @@ pub fn setup_game(
         materials.as_mut(),
     );
 
+    let box_config = &game_lib.config.box_config;
+
+    commands.insert_resource(IndexGen::new(box_config.play_box_type_count(), PLAY_BOX_ROTATE_COUNT));
     commands.insert_resource(game_lib);
     commands.insert_resource(game_panel);
     commands.insert_resource(PlayBoxRecord(None));
@@ -62,6 +64,7 @@ pub fn play_game(
     mut game_lib: ResMut<GameLib>,
     game_panel: Res<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
+    mut index_gen: ResMut<IndexGen>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
     if let Some(b) = &mut play_box.0 {
@@ -71,7 +74,7 @@ pub fn play_game(
             try_move_right(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
         }
     } else {
-        play_box.0 = Some(PlayBox::new(game_lib.as_mut(), &mut commands));
+        play_box.0 = Some(PlayBox::new(index_gen.as_mut(), game_lib.as_ref(), &mut commands));
     }
 }
 
@@ -82,7 +85,7 @@ fn try_move_left(
     game_panel: &GamePanel,
 ) {
     let dest = BoxPos::new(play_box.pos.row, play_box.pos.col - 1);
-    if game_panel.can_move_to(&dest, play_box, game_lib) {
+    if game_panel.can_move_to(&dest, &play_box.index, game_lib) {
         play_box.move_to(dest, commands, game_lib);
     }
 }
@@ -94,7 +97,7 @@ fn try_move_right(
     game_panel: &GamePanel,
 ) {
     let dest = BoxPos::new(play_box.pos.row, play_box.pos.col + 1);
-    if game_panel.can_move_to(&dest, play_box, game_lib) {
+    if game_panel.can_move_to(&dest, &play_box.index, game_lib) {
         play_box.move_to(dest, commands, game_lib);
     }
 }

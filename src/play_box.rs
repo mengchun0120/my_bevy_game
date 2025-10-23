@@ -1,8 +1,38 @@
 use crate::game_lib::*;
 use bevy::prelude::*;
+use rand::prelude::*;
 
 #[derive(Resource, Debug)]
 pub struct PlayBoxRecord(pub Option<PlayBox>);
+
+#[derive(Resource, Debug)]
+pub struct BoxIndex {
+    pub type_index: usize,
+    pub rotate_index: usize,
+}
+
+#[derive(Resource)]
+pub struct IndexGen{
+    type_count: usize,
+    rotate_count: usize,
+    rng: StdRng,
+}
+
+impl IndexGen {
+    pub fn new(type_count: usize, rotate_count: usize) -> Self {
+        IndexGen {
+            type_count,
+            rotate_count,
+            rng: StdRng::from_os_rng(),
+        }
+    }
+
+    pub fn rand_box(&mut self) -> BoxIndex {
+        let type_index = self.rng.random_range(0..self.type_count);
+        let rotate_index = self.rng.random_range(0..self.rotate_count);
+        BoxIndex { type_index, rotate_index }
+    }
+}
 
 #[derive(Resource, Component, Debug, Clone)]
 pub struct BoxPos {
@@ -29,22 +59,19 @@ impl BoxPos {
 #[derive(Resource, Debug)]
 pub struct PlayBox {
     pub pos: BoxPos,
-    pub type_index: usize,
-    pub rotate_index: usize,
+    pub index: BoxIndex,
     entities: Vec<Entity>,
 }
 
 impl PlayBox {
-    pub fn new(game_lib: &mut GameLib, commands: &mut Commands) -> Self {
+    pub fn new(g: &mut IndexGen, game_lib: &GameLib, commands: &mut Commands) -> Self {
         let config = &game_lib.config;
-        let type_index = config.box_config.rand_type_index(&mut game_lib.rng);
-        let rotate_index = BoxConfig::rand_rotate_index(&mut game_lib.rng);
-        let pos = Self::init_pos(game_lib, type_index, rotate_index);
+        let index = g.rand_box();
+        let pos = Self::init_pos(game_lib, &index);
 
         let mut play_box = PlayBox {
             pos,
-            type_index,
-            rotate_index,
+            index,
             entities: Vec::new(),
         };
 
@@ -59,8 +86,8 @@ impl PlayBox {
         self.update_position(delta, commands);
     }
 
-    fn init_pos(game_lib: &GameLib, type_index: usize, rotate_index: usize) -> BoxPos {
-        let box_size = &game_lib.box_sizes[type_index][rotate_index];
+    fn init_pos(game_lib: &GameLib, index: &BoxIndex) -> BoxPos {
+        let box_size = &game_lib.box_size(index);
         let panel_config = &game_lib.config.game_panel_config;
         let col = (panel_config.col_count() as u32 - box_size.width) / 2;
         let row = game_lib.config.game_panel_config.main_rows as u32 - box_size.height;
@@ -70,14 +97,14 @@ impl PlayBox {
         }
     }
 
-    fn add_components(&mut self, game_lib: &mut GameLib, commands: &mut Commands) {
+    fn add_components(&mut self, game_lib: &GameLib, commands: &mut Commands) {
         let config = &game_lib.config;
         let init_pos = self.pos.to_panel_pos(game_lib);
-        let color = &game_lib.box_colors[self.type_index];
+        let color = &game_lib.box_colors[self.index.type_index];
         let box_span = game_lib.box_span;
         let box_config = &config.box_config;
         let panel_config = &config.game_panel_config;
-        let bitmap = box_config.play_box_bitmap(self.type_index, self.rotate_index);
+        let bitmap = box_config.play_box_bitmap(&self.index);
         let mut y = init_pos.y;
         let z = box_config.z;
         let mut pos = self.pos.clone();

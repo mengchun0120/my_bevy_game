@@ -1,6 +1,6 @@
 use crate::my_error::*;
-use crate::play_box::BoxPos;
 use crate::utils::*;
+use crate::play_box::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 use serde::Deserialize;
@@ -65,16 +65,8 @@ impl BoxConfig {
         self.play_boxes.len()
     }
 
-    pub fn play_box_bitmap(&self, type_index: usize, rotate_index: usize) -> &BitMap {
-        &self.play_boxes[type_index].bitmaps[rotate_index]
-    }
-
-    pub fn rand_type_index<R: Rng>(&self, rng: &mut R) -> usize {
-        rng.random_range(0..self.play_box_type_count())
-    }
-
-    pub fn rand_rotate_index<R: Rng>(rng: &mut R) -> usize {
-        rng.random_range(0..PLAY_BOX_ROTATE_COUNT)
+    pub fn play_box_bitmap(&self, index: &BoxIndex) -> &BitMap {
+        &self.play_boxes[index.type_index].bitmaps[index.rotate_index]
     }
 }
 
@@ -194,6 +186,10 @@ impl GameLib {
         info!("GameLib initialized");
 
         Ok(game_lib)
+    }
+
+    pub fn box_size(&self, index: &BoxIndex) -> &ISize {
+        &self.box_sizes[index.type_index][index.rotate_index]
     }
 
     fn init_box_colors(
