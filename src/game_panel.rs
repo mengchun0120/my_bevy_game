@@ -5,6 +5,7 @@ use bevy::prelude::*;
 
 #[derive(Resource, Debug)]
 pub struct GamePanel {
+    pub main_rows: usize,
     pub panel: Vec<Vec<Option<Entity>>>,
 }
 
@@ -40,6 +41,7 @@ impl GamePanel {
         );
 
         let panel = Self {
+            main_rows: panel_config.main_rows,
             panel: vec![vec![None; panel_config.col_count()]; panel_config.row_count()],
         };
 
@@ -48,10 +50,45 @@ impl GamePanel {
         panel
     }
 
+    #[inline]
+    pub fn row_count(&self) -> usize {
+        self.panel.len()
+    }
+
+    #[inline]
+    pub fn col_count(&self) -> usize {
+        self.panel[0].len()
+    }
+
+    #[inline]
+    pub fn is_visible(&self, row: i32, col: i32) -> bool {
+        (0..self.main_rows as i32).contains(&row) && (0..self.col_count() as i32).contains(&col)
+    }
+
+    #[inline]
+    pub fn is_inside(&self, row: i32, col: i32) -> bool {
+        (0..self.row_count() as i32).contains(&row) && (0..self.col_count() as i32).contains(&col)
+    }
+
+    pub fn init_pos(&self, index: &BoxIndex, game_lib: &GameLib) -> Option<BoxPos> {
+        let box_size = game_lib.box_size(index);
+        let max_row = self.row_count() as i32 - box_size.height as i32;
+        let init_row = self.main_rows as i32 - box_size.height as i32;
+        let col = (self.col_count() as i32 - box_size.width as i32) / 2;
+
+        for row in init_row..=max_row {
+            let pos = BoxPos::new(row, col);
+            if self.can_move_to(&pos, index, game_lib) {
+                return Some(pos);
+            }
+        }
+
+        None
+    }
+
     pub fn can_move_to(&self, dest: &BoxPos, index: &BoxIndex, game_lib: &GameLib) -> bool {
         let config = &game_lib.config;
         let bmp = config.box_config.play_box_bitmap(index);
-        let panel_config = &config.game_panel_config;
         let mut row = dest.row;
 
         for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
@@ -61,7 +98,7 @@ impl GamePanel {
                     continue;
                 }
 
-                if !panel_config.is_inside(row, col)
+                if !self.is_inside(row, col)
                     || self.panel[row as usize][col as usize].is_some()
                 {
                     return false;

@@ -77,11 +77,12 @@ pub fn play_game(
             try_move_right(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
         }
     } else {
-        play_box.0 = Some(PlayBox::new(
+        play_box.0 = PlayBox::new(
             index_gen.as_mut(),
             game_lib.as_ref(),
             &mut commands,
-        ));
+            game_panel.as_ref(),
+        );
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::game_lib::*;
+use crate::game_panel::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 
@@ -57,9 +58,11 @@ pub struct PlayBox {
 }
 
 impl PlayBox {
-    pub fn new(g: &mut IndexGen, game_lib: &GameLib, commands: &mut Commands) -> Self {
+    pub fn new(g: &mut IndexGen, game_lib: &GameLib, commands: &mut Commands, game_panel: &GamePanel) -> Option<Self> {
         let index = g.rand_box();
-        let pos = Self::init_pos(game_lib, &index);
+        let Some(pos) = game_panel.init_pos(&index, game_lib) else {
+            return None;
+        };
 
         let mut play_box = PlayBox {
             pos,
@@ -67,9 +70,9 @@ impl PlayBox {
             entities: Vec::new(),
         };
 
-        play_box.add_components(game_lib, commands);
+        play_box.add_components(game_lib, commands, game_panel);
 
-        play_box
+        Some(play_box)
     }
 
     pub fn move_to(&mut self, dest: BoxPos, commands: &mut Commands, game_lib: &GameLib) {
@@ -80,24 +83,12 @@ impl PlayBox {
         self.update_position(delta, index_delta, commands);
     }
 
-    fn init_pos(game_lib: &GameLib, index: &BoxIndex) -> BoxPos {
-        let box_size = &game_lib.box_size(index);
-        let panel_config = &game_lib.config.game_panel_config;
-        let col = (panel_config.col_count() as u32 - box_size.width) / 2;
-        let row = game_lib.config.game_panel_config.main_rows as u32 - box_size.height;
-        BoxPos {
-            row: row as i32,
-            col: col as i32,
-        }
-    }
-
-    fn add_components(&mut self, game_lib: &GameLib, commands: &mut Commands) {
+    fn add_components(&mut self, game_lib: &GameLib, commands: &mut Commands, game_panel: &GamePanel) {
         let config = &game_lib.config;
         let init_pos = game_lib.panel_pos(&self.pos);
         let color = &game_lib.box_colors[self.index.type_index];
         let box_span = game_lib.box_span;
         let box_config = &config.box_config;
-        let panel_config = &config.game_panel_config;
         let bitmap = box_config.play_box_bitmap(&self.index);
         let mut y = init_pos.y;
         let z = box_config.z;
@@ -109,7 +100,7 @@ impl PlayBox {
             pos.col = self.pos.col;
             for col in 0..PLAY_BOX_BITMAP_SIZE {
                 if bitmap[row][col] != 0 {
-                    let visibility = if panel_config.is_inside(pos.row, pos.col) {
+                    let visibility = if game_panel.is_visible(pos.row, pos.col) {
                         Visibility::Visible
                     } else {
                         Visibility::Hidden

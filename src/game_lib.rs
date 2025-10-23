@@ -2,7 +2,6 @@ use crate::my_error::*;
 use crate::play_box::*;
 use crate::utils::*;
 use bevy::prelude::*;
-use rand::prelude::*;
 use serde::Deserialize;
 use std::path::Path;
 
@@ -44,10 +43,6 @@ impl GamePanelConfig {
 
     pub fn border_color(&self) -> Color {
         vec_to_color(&self.border_color)
-    }
-
-    pub fn is_inside(&self, row: i32, col: i32) -> bool {
-        (0..self.col_count() as i32).contains(&col) && (0..self.main_rows as i32).contains(&row)
     }
 }
 
