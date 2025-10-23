@@ -12,7 +12,7 @@ pub struct BoxIndex {
 }
 
 #[derive(Resource)]
-pub struct IndexGen{
+pub struct IndexGen {
     type_count: usize,
     rotate_count: usize,
     rng: StdRng,
@@ -30,7 +30,10 @@ impl IndexGen {
     pub fn rand_box(&mut self) -> BoxIndex {
         let type_index = self.rng.random_range(0..self.type_count);
         let rotate_index = self.rng.random_range(0..self.rotate_count);
-        BoxIndex { type_index, rotate_index }
+        BoxIndex {
+            type_index,
+            rotate_index,
+        }
     }
 }
 
@@ -44,16 +47,6 @@ impl BoxPos {
     pub fn new(row: i32, col: i32) -> Self {
         Self { row, col }
     }
-
-    pub fn to_panel_pos(&self, game_lib: &GameLib) -> Vec2 {
-        let offset = Vec2::new(self.col as f32, self.row as f32) * game_lib.box_span;
-        game_lib.box_origin + offset
-    }
-
-    pub fn reset(&mut self, row: i32, col: i32) {
-        self.row = row;
-        self.col = col;
-    }
 }
 
 #[derive(Resource, Debug)]
@@ -65,7 +58,6 @@ pub struct PlayBox {
 
 impl PlayBox {
     pub fn new(g: &mut IndexGen, game_lib: &GameLib, commands: &mut Commands) -> Self {
-        let config = &game_lib.config;
         let index = g.rand_box();
         let pos = Self::init_pos(game_lib, &index);
 
@@ -81,9 +73,11 @@ impl PlayBox {
     }
 
     pub fn move_to(&mut self, dest: BoxPos, commands: &mut Commands, game_lib: &GameLib) {
-        let delta = dest.to_panel_pos(game_lib) - self.pos.to_panel_pos(game_lib);
+        let delta = game_lib.panel_pos(&dest) - game_lib.panel_pos(&self.pos);
+        let index_delta = BoxPos::new(dest.row - self.pos.row, dest.col - self.pos.col);
+
         self.pos = dest;
-        self.update_position(delta, commands);
+        self.update_position(delta, index_delta, commands);
     }
 
     fn init_pos(game_lib: &GameLib, index: &BoxIndex) -> BoxPos {
@@ -99,7 +93,7 @@ impl PlayBox {
 
     fn add_components(&mut self, game_lib: &GameLib, commands: &mut Commands) {
         let config = &game_lib.config;
-        let init_pos = self.pos.to_panel_pos(game_lib);
+        let init_pos = game_lib.panel_pos(&self.pos);
         let color = &game_lib.box_colors[self.index.type_index];
         let box_span = game_lib.box_span;
         let box_config = &config.box_config;
@@ -137,16 +131,20 @@ impl PlayBox {
         }
     }
 
-    fn update_position(&mut self, delta: Vec2, commands: &mut Commands) {
+    fn update_position(&mut self, delta: Vec2, index_delta: BoxPos, commands: &mut Commands) {
         let change_pos = move |mut t: Mut<'_, Transform>| {
             t.translation.x += delta.x;
             t.translation.y += delta.y;
         };
+        let change_index_pos = move |mut p: Mut<'_, BoxPos>| {
+            p.row += index_delta.row;
+            p.col += index_delta.col;
+        };
 
         for e in self.entities.iter() {
-            commands.entity(e.clone())
-                .entry::<Transform>()
-                .and_modify(change_pos);
+            let mut entity = commands.entity(e.clone());
+            entity.entry::<Transform>().and_modify(change_pos);
+            entity.entry::<BoxPos>().and_modify(change_index_pos);
         }
     }
 }

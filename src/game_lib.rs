@@ -1,6 +1,6 @@
 use crate::my_error::*;
-use crate::utils::*;
 use crate::play_box::*;
+use crate::utils::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 use serde::Deserialize;
@@ -47,8 +47,7 @@ impl GamePanelConfig {
     }
 
     pub fn is_inside(&self, row: i32, col: i32) -> bool {
-        (0..self.col_count() as i32).contains(&col)
-            && (0..self.main_rows as i32).contains(&row)
+        (0..self.col_count() as i32).contains(&col) && (0..self.main_rows as i32).contains(&row)
     }
 }
 
@@ -138,7 +137,6 @@ pub struct GameLib {
     pub box_mesh: Handle<Mesh>,
     pub box_colors: Vec<Handle<ColorMaterial>>,
     pub box_sizes: Vec<Vec<ISize>>,
-    pub rng: StdRng,
 }
 
 impl GameLib {
@@ -170,8 +168,6 @@ impl GameLib {
 
         let box_sizes = Self::init_box_sizes(&box_config.play_boxes);
 
-        let rng = StdRng::from_os_rng();
-
         let game_lib = GameLib {
             config,
             origin_pos,
@@ -180,7 +176,6 @@ impl GameLib {
             box_mesh,
             box_colors,
             box_sizes,
-            rng,
         };
 
         info!("GameLib initialized");
@@ -190,6 +185,11 @@ impl GameLib {
 
     pub fn box_size(&self, index: &BoxIndex) -> &ISize {
         &self.box_sizes[index.type_index][index.rotate_index]
+    }
+
+    pub fn panel_pos(&self, pos: &BoxPos) -> Vec2 {
+        let offset = Vec2::new(pos.col as f32, pos.row as f32) * self.box_span;
+        self.box_origin + offset
     }
 
     fn init_box_colors(

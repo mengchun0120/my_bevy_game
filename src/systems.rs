@@ -1,7 +1,7 @@
 use crate::game_lib::*;
 use crate::game_panel::*;
-use crate::utils::*;
 use crate::play_box::*;
+use crate::utils::*;
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -49,7 +49,10 @@ pub fn setup_game(
 
     let box_config = &game_lib.config.box_config;
 
-    commands.insert_resource(IndexGen::new(box_config.play_box_type_count(), PLAY_BOX_ROTATE_COUNT));
+    commands.insert_resource(IndexGen::new(
+        box_config.play_box_type_count(),
+        PLAY_BOX_ROTATE_COUNT,
+    ));
     commands.insert_resource(game_lib);
     commands.insert_resource(game_panel);
     commands.insert_resource(PlayBoxRecord(None));
@@ -61,7 +64,7 @@ pub fn setup_game(
 
 pub fn play_game(
     mut commands: Commands,
-    mut game_lib: ResMut<GameLib>,
+    game_lib: Res<GameLib>,
     game_panel: Res<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
     mut index_gen: ResMut<IndexGen>,
@@ -74,7 +77,11 @@ pub fn play_game(
             try_move_right(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
         }
     } else {
-        play_box.0 = Some(PlayBox::new(index_gen.as_mut(), game_lib.as_ref(), &mut commands));
+        play_box.0 = Some(PlayBox::new(
+            index_gen.as_mut(),
+            game_lib.as_ref(),
+            &mut commands,
+        ));
     }
 }
 

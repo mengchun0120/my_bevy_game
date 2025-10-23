@@ -61,7 +61,9 @@ impl GamePanel {
                     continue;
                 }
 
-                if !panel_config.is_inside(row, col) || self.panel[row as usize][col as usize].is_some() {
+                if !panel_config.is_inside(row, col)
+                    || self.panel[row as usize][col as usize].is_some()
+                {
                     return false;
                 }
 
