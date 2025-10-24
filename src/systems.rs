@@ -11,6 +11,10 @@ pub enum AppState {
     Playing,
 }
 
+pub fn play_box_active(play_box: Res<PlayBoxRecord>) -> bool {
+    play_box.0.is_some()
+}
+
 pub fn setup_game(
     mut next_state: ResMut<NextState<AppState>>,
     mut commands: Commands,
@@ -62,27 +66,33 @@ pub fn setup_game(
     info!("Finished setting up game");
 }
 
-pub fn play_game(
+pub fn reset_play_box(
     mut commands: Commands,
     game_lib: Res<GameLib>,
     game_panel: Res<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
     mut index_gen: ResMut<IndexGen>,
+) {
+    play_box.0 = PlayBox::new(
+        index_gen.as_mut(),
+        game_lib.as_ref(),
+        &mut commands,
+        game_panel.as_ref(),
+    );
+}
+
+pub fn process_input(
+    mut commands: Commands,
+    game_lib: Res<GameLib>,
+    game_panel: Res<GamePanel>,
+    mut play_box: ResMut<PlayBoxRecord>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
-    if let Some(b) = &mut play_box.0 {
-        if keys.just_pressed(KeyCode::ArrowLeft) {
-            try_move_left(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
-        } else if keys.just_pressed(KeyCode::ArrowRight) {
-            try_move_right(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
-        }
-    } else {
-        play_box.0 = PlayBox::new(
-            index_gen.as_mut(),
-            game_lib.as_ref(),
-            &mut commands,
-            game_panel.as_ref(),
-        );
+    let b = play_box.0.as_mut().unwrap();
+    if keys.just_pressed(KeyCode::ArrowLeft) {
+        try_move_left(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
+    } else if keys.just_pressed(KeyCode::ArrowRight) {
+        try_move_right(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
     }
 }
 

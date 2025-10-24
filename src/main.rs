@@ -20,6 +20,7 @@ fn main() {
         .insert_resource(args)
         .init_state::<AppState>()
         .add_systems(Startup, setup_game)
-        .add_systems(Update, play_game.run_if(in_state(AppState::Playing)))
+        .add_systems(Update, reset_play_box.run_if(in_state(AppState::Playing).and(not(play_box_active))))
+        .add_systems(Update, process_input.run_if(in_state(AppState::Playing).and(play_box_active)))
         .run();
 }
