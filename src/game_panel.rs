@@ -94,16 +94,12 @@ impl GamePanel {
         for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
             let mut col = dest.col;
             for c in 0..PLAY_BOX_BITMAP_SIZE {
-                if bmp[r][c] == 0 {
-                    continue;
-                }
-
-                if !self.is_inside(row, col)
-                    || self.panel[row as usize][col as usize].is_some()
+                if bmp[r][c] != 0
+                    && (!self.is_inside(row, col)
+                        || self.panel[row as usize][col as usize].is_some())
                 {
                     return false;
                 }
-
                 col += 1;
             }
             row += 1;

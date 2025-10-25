@@ -82,40 +82,42 @@ pub fn reset_play_box(
 }
 
 pub fn process_input(
-    mut commands: Commands,
     game_lib: Res<GameLib>,
     game_panel: Res<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut active_boxes: Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
 ) {
     let b = play_box.0.as_mut().unwrap();
     if keys.just_pressed(KeyCode::ArrowLeft) {
-        try_move_left(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
+        try_move_left(b, game_lib.as_ref(), game_panel.as_ref(), &mut active_boxes);
     } else if keys.just_pressed(KeyCode::ArrowRight) {
-        try_move_right(b, &mut commands, game_lib.as_ref(), game_panel.as_ref());
+        try_move_right(b, game_lib.as_ref(), game_panel.as_ref(), &mut active_boxes);
     }
 }
 
 fn try_move_left(
     play_box: &mut PlayBox,
-    commands: &mut Commands,
     game_lib: &GameLib,
     game_panel: &GamePanel,
+    active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
 ) {
     let dest = BoxPos::new(play_box.pos.row, play_box.pos.col - 1);
-    if game_panel.can_move_to(&dest, &play_box.index, game_lib) {
-        play_box.move_to(dest, commands, game_lib);
+    let index = play_box.index.clone();
+    if game_panel.can_move_to(&dest, &index, game_lib) {
+        play_box.reset(&dest, &index, game_lib, game_panel, active_boxes);
     }
 }
 
 fn try_move_right(
     play_box: &mut PlayBox,
-    commands: &mut Commands,
     game_lib: &GameLib,
     game_panel: &GamePanel,
+    active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
 ) {
     let dest = BoxPos::new(play_box.pos.row, play_box.pos.col + 1);
-    if game_panel.can_move_to(&dest, &play_box.index, game_lib) {
-        play_box.move_to(dest, commands, game_lib);
+    let index = play_box.index.clone();
+    if game_panel.can_move_to(&dest, &index, game_lib) {
+        play_box.reset(&dest, &index, game_lib, game_panel, active_boxes);
     }
 }

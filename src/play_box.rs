@@ -6,10 +6,26 @@ use rand::prelude::*;
 #[derive(Resource, Debug)]
 pub struct PlayBoxRecord(pub Option<PlayBox>);
 
-#[derive(Resource, Debug)]
+#[derive(Component, Debug)]
+pub struct ActiveBox;
+
+#[derive(Resource, Debug, Clone)]
 pub struct BoxIndex {
     pub type_index: usize,
     pub rotate_index: usize,
+}
+
+impl BoxIndex {
+    pub fn new(type_index: usize, rotate_index: usize) -> Self {
+        Self {
+            type_index,
+            rotate_index,
+        }
+    }
+
+    pub fn rotate(&mut self) {
+        self.rotate_index = (self.rotate_index + 1) % PLAY_BOX_ROTATE_COUNT;
+    }
 }
 
 #[derive(Resource)]
@@ -54,88 +70,125 @@ impl BoxPos {
 pub struct PlayBox {
     pub pos: BoxPos,
     pub index: BoxIndex,
-    entities: Vec<Entity>,
 }
 
 impl PlayBox {
-    pub fn new(g: &mut IndexGen, game_lib: &GameLib, commands: &mut Commands, game_panel: &GamePanel) -> Option<Self> {
+    pub fn new(
+        g: &mut IndexGen,
+        game_lib: &GameLib,
+        commands: &mut Commands,
+        game_panel: &GamePanel,
+    ) -> Option<Self> {
         let index = g.rand_box();
         let Some(pos) = game_panel.init_pos(&index, game_lib) else {
             return None;
         };
 
-        let mut play_box = PlayBox {
-            pos,
-            index,
-            entities: Vec::new(),
-        };
+        let mut play_box = PlayBox { pos, index };
 
         play_box.add_components(game_lib, commands, game_panel);
 
         Some(play_box)
     }
 
-    pub fn move_to(&mut self, dest: BoxPos, commands: &mut Commands, game_lib: &GameLib) {
-        let delta = game_lib.panel_pos(&dest) - game_lib.panel_pos(&self.pos);
-        let index_delta = BoxPos::new(dest.row - self.pos.row, dest.col - self.pos.col);
-
-        self.pos = dest;
-        self.update_position(delta, index_delta, commands);
+    pub fn reset(
+        &mut self,
+        pos: &BoxPos,
+        index: &BoxIndex,
+        game_lib: &GameLib,
+        game_panel: &GamePanel,
+        active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
+    ) {
+        self.pos = pos.clone();
+        self.index = index.clone();
+        let p = self.get_component_pos_vis(game_lib, game_panel);
+        let mut it = p.iter();
+        for (mut t, mut v) in active_boxes.iter_mut() {
+            if let Some((p, u)) = it.next() {
+                t.translation.x = p.x;
+                t.translation.y = p.y;
+                *v.as_mut() = *u;
+            }
+        }
     }
 
-    fn add_components(&mut self, game_lib: &GameLib, commands: &mut Commands, game_panel: &GamePanel) {
+    pub fn rotate(&mut self, commands: &mut Commands, game_lib: &GameLib, game_panel: &GamePanel) {
+        self.index.rotate();
+    }
+
+    fn add_components(
+        &mut self,
+        game_lib: &GameLib,
+        commands: &mut Commands,
+        game_panel: &GamePanel,
+    ) {
         let config = &game_lib.config;
-        let init_pos = game_lib.panel_pos(&self.pos);
+        let init_pos = game_lib.panel_pos(self.pos.row, self.pos.col);
         let color = &game_lib.box_colors[self.index.type_index];
         let box_span = game_lib.box_span;
         let box_config = &config.box_config;
         let bitmap = box_config.play_box_bitmap(&self.index);
         let mut y = init_pos.y;
         let z = box_config.z;
-        let mut pos = self.pos.clone();
+        let mut row = self.pos.row;
 
-        self.entities.clear();
-        for row in (0..PLAY_BOX_BITMAP_SIZE).rev() {
+        for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
             let mut x = init_pos.x;
-            pos.col = self.pos.col;
-            for col in 0..PLAY_BOX_BITMAP_SIZE {
-                if bitmap[row][col] != 0 {
-                    let visibility = if game_panel.is_visible(pos.row, pos.col) {
+            let mut col = self.pos.col;
+            for c in 0..PLAY_BOX_BITMAP_SIZE {
+                if bitmap[r][c] != 0 {
+                    let visibility = if game_panel.is_visible(row, col) {
                         Visibility::Visible
                     } else {
                         Visibility::Hidden
                     };
-                    let e = commands.spawn((
+                    commands.spawn((
                         Mesh2d(game_lib.box_mesh.clone()),
                         MeshMaterial2d(color.clone()),
                         Transform::from_xyz(x, y, z),
-                        pos.clone(),
                         visibility,
+                        ActiveBox,
                     ));
-                    self.entities.push(e.id());
                 }
                 x += box_span;
-                pos.col += 1;
+                col += 1;
             }
             y += box_span;
-            pos.row += 1;
+            row += 1;
         }
     }
 
-    fn update_position(&mut self, delta: Vec2, index_delta: BoxPos, commands: &mut Commands) {
-        let change_pos = move |mut t: Mut<'_, Transform>| {
-            t.translation.x += delta.x;
-            t.translation.y += delta.y;
-        };
-        let change_index_pos = move |mut p: Mut<'_, BoxPos>| {
-            p.row += index_delta.row;
-            p.col += index_delta.col;
-        };
+    fn get_component_pos_vis(
+        &self,
+        game_lib: &GameLib,
+        game_panel: &GamePanel,
+    ) -> Vec<(Vec2, Visibility)> {
+        let mut result: Vec<(Vec2, Visibility)> = Vec::new();
+        let init_pos = game_lib.panel_pos(self.pos.row, self.pos.col);
+        let bmp = game_lib.config.box_config.play_box_bitmap(&self.index);
+        let box_span = game_lib.box_span;
+        let mut row = self.pos.row;
+        let mut y = init_pos.y;
 
-        for e in self.entities.iter() {
-            let mut entity = commands.entity(e.clone());
-            entity.entry::<Transform>().and_modify(change_pos);
-            entity.entry::<BoxPos>().and_modify(change_index_pos);
+        for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
+            let mut col = self.pos.col;
+            let mut x = init_pos.x;
+            for c in 0..PLAY_BOX_BITMAP_SIZE {
+                if bmp[r][c] != 0 {
+                    let v = if game_panel.is_visible(row, col) {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Hidden
+                    };
+                    result.push((Vec2::new(x, y), v));
+                }
+                x += box_span;
+                col += 1;
+            }
+            y += box_span;
+            row += 1;
         }
+
+        result
     }
 }

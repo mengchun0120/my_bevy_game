@@ -182,8 +182,8 @@ impl GameLib {
         &self.box_sizes[index.type_index][index.rotate_index]
     }
 
-    pub fn panel_pos(&self, pos: &BoxPos) -> Vec2 {
-        let offset = Vec2::new(pos.col as f32, pos.row as f32) * self.box_span;
+    pub fn panel_pos(&self, row: i32, col: i32) -> Vec2 {
+        let offset = Vec2::new(col as f32, row as f32) * self.box_span;
         self.box_origin + offset
     }
 
