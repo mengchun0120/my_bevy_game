@@ -62,7 +62,8 @@ impl GamePanel {
 
     #[inline]
     pub fn visibility(&self, row: i32, col: i32) -> Visibility {
-        if (0..self.main_rows as i32).contains(&row) && (0..self.col_count() as i32).contains(&col) {
+        if (0..self.main_rows as i32).contains(&row) && (0..self.col_count() as i32).contains(&col)
+        {
             Visibility::Visible
         } else {
             Visibility::Hidden

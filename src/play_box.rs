@@ -23,8 +23,11 @@ impl BoxIndex {
         }
     }
 
-    pub fn rotate(&mut self) {
-        self.rotate_index = (self.rotate_index + 1) % PLAY_BOX_ROTATE_COUNT;
+    pub fn rotate(&self) -> Self {
+        Self::new(
+            self.type_index,
+            (self.rotate_index + 1) % PLAY_BOX_ROTATE_COUNT,
+        )
     }
 }
 
@@ -115,10 +118,6 @@ impl PlayBox {
                 *v.as_mut() = game_panel.visibility(row, col);
             }
         }
-    }
-
-    pub fn rotate(&mut self, commands: &mut Commands, game_lib: &GameLib, game_panel: &GamePanel) {
-        self.index.rotate();
     }
 
     fn add_components(

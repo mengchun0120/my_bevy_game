@@ -93,6 +93,8 @@ pub fn process_input(
         try_move_left(b, game_lib.as_ref(), game_panel.as_ref(), &mut active_boxes);
     } else if keys.just_pressed(KeyCode::ArrowRight) {
         try_move_right(b, game_lib.as_ref(), game_panel.as_ref(), &mut active_boxes);
+    } else if keys.just_pressed(KeyCode::ArrowUp) {
+        try_rotate(b, game_lib.as_ref(), game_panel.as_ref(), &mut active_boxes);
     }
 }
 
@@ -117,6 +119,19 @@ fn try_move_right(
 ) {
     let dest = BoxPos::new(play_box.pos.row, play_box.pos.col + 1);
     let index = play_box.index.clone();
+    if game_panel.can_move_to(&dest, &index, game_lib) {
+        play_box.reset(&dest, &index, game_lib, game_panel, active_boxes);
+    }
+}
+
+fn try_rotate(
+    play_box: &mut PlayBox,
+    game_lib: &GameLib,
+    game_panel: &GamePanel,
+    active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
+) {
+    let dest = play_box.pos.clone();
+    let index = play_box.index.rotate();
     if game_panel.can_move_to(&dest, &index, game_lib) {
         play_box.reset(&dest, &index, game_lib, game_panel, active_boxes);
     }
