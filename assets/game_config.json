@@ -14,6 +14,8 @@
         "border_z": 0.0
     },
     "drop_down_interval": 1.0,
+    "fast_down_interval": 0.02,
+    "fast_down_max_steps": 5,
     "box_config": {
         "size": 20.0,
         "spacing": 1.0,

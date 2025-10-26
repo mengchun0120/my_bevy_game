@@ -25,6 +25,50 @@ pub struct LogFileGuard(WorkerGuard);
 #[derive(Resource)]
 pub struct DropDownTimer(pub Timer);
 
+#[derive(Resource)]
+pub struct FastDownTimer {
+    pub timer: Timer,
+    pub max_steps: u32,
+    pub step: u32,
+}
+
+impl FastDownTimer {
+    pub fn new(duration: f32, max_steps: u32) -> Self {
+        Self {
+            timer: repeat_timer(duration),
+            max_steps,
+            step: 0,
+        }
+    }
+
+    pub fn start(&mut self) {
+        self.timer.unpause();
+        self.step = 0;
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.step >= self.max_steps
+    }
+
+    pub fn update(&mut self, time: &Time) -> bool {
+        if self.is_finished() {
+            return false;
+        }
+
+        self.timer.tick(time.delta());
+        if self.timer.is_finished() {
+            self.step += 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn stop(&mut self) {
+        self.timer.pause();
+    }
+}
+
 #[derive(Debug, Deserialize, Resource)]
 pub struct ISize {
     pub width: u32,
@@ -35,6 +79,12 @@ pub struct ISize {
 pub struct RectSize {
     pub width: f32,
     pub height: f32,
+}
+
+pub fn repeat_timer(duration: f32) -> Timer {
+    let mut timer = Timer::from_seconds(duration, TimerMode::Repeating);
+    timer.pause();
+    timer
 }
 
 pub fn vec_to_vec2(v: &[f32; 2]) -> Vec2 {

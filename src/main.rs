@@ -29,5 +29,9 @@ fn main() {
             (process_input, drop_down_play_box)
                 .run_if(in_state(AppState::Playing).and(play_box_active)),
         )
+        .add_systems(
+            Update,
+            fast_move_down.run_if(in_state(AppState::FastDown).and(play_box_active)),
+        )
         .run();
 }
