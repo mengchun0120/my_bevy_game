@@ -100,14 +100,17 @@ impl PlayBox {
         index: &BoxIndex,
         game_lib: &GameLib,
         game_panel: &GamePanel,
-        active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
+        active_boxes: &mut Query<
+            (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
+            With<ActiveBox>,
+        >,
     ) {
         self.pos = pos.clone();
         self.index = index.clone();
         let box_pos = game_lib.box_pos(&index);
         let mut it = box_pos.iter();
 
-        for (mut t, mut v) in active_boxes.iter_mut() {
+        for (_, mut t, mut v, mut box_pos) in active_boxes.iter_mut() {
             if let Some(pos) = it.next() {
                 let row = self.pos.row + pos.row;
                 let col = self.pos.col + pos.col;
@@ -116,6 +119,8 @@ impl PlayBox {
                 t.translation.x = p.x;
                 t.translation.y = p.y;
                 *v.as_mut() = game_panel.visibility(row, col);
+                box_pos.row = row;
+                box_pos.col = col;
             }
         }
     }
@@ -147,6 +152,7 @@ impl PlayBox {
                         Transform::from_xyz(x, y, z),
                         game_panel.visibility(row, col),
                         ActiveBox,
+                        BoxPos::new(row, col),
                     ));
                 }
                 x += box_span;

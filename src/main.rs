@@ -26,7 +26,8 @@ fn main() {
         )
         .add_systems(
             Update,
-            process_input.run_if(in_state(AppState::Playing).and(play_box_active)),
+            (process_input, drop_down_play_box)
+                .run_if(in_state(AppState::Playing).and(play_box_active)),
         )
         .run();
 }

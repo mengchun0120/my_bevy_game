@@ -57,6 +57,10 @@ pub fn setup_game(
         box_config.play_box_type_count(),
         PLAY_BOX_ROTATE_COUNT,
     ));
+    commands.insert_resource(DropDownTimer(Timer::from_seconds(
+        game_lib.config.drop_down_interval,
+        TimerMode::Repeating,
+    )));
     commands.insert_resource(game_lib);
     commands.insert_resource(game_panel);
     commands.insert_resource(PlayBoxRecord(None));
@@ -72,6 +76,7 @@ pub fn reset_play_box(
     game_panel: Res<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
     mut index_gen: ResMut<IndexGen>,
+    mut timer: ResMut<DropDownTimer>,
 ) {
     play_box.0 = PlayBox::new(
         index_gen.as_mut(),
@@ -79,6 +84,7 @@ pub fn reset_play_box(
         &mut commands,
         game_panel.as_ref(),
     );
+    timer.0.unpause();
 }
 
 pub fn process_input(
@@ -86,7 +92,10 @@ pub fn process_input(
     game_panel: Res<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut active_boxes: Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
+    mut active_boxes: Query<
+        (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
+        With<ActiveBox>,
+    >,
 ) {
     let b = play_box.0.as_mut().unwrap();
     if keys.just_pressed(KeyCode::ArrowLeft) {
@@ -98,11 +107,48 @@ pub fn process_input(
     }
 }
 
+pub fn drop_down_play_box(
+    mut commands: Commands,
+    game_lib: Res<GameLib>,
+    mut game_panel: ResMut<GamePanel>,
+    mut play_box: ResMut<PlayBoxRecord>,
+    time: Res<Time>,
+    mut timer: ResMut<DropDownTimer>,
+    mut active_boxes: Query<
+        (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
+        With<ActiveBox>,
+    >,
+) {
+    timer.0.tick(time.delta());
+
+    if timer.0.is_finished() {
+        let b = play_box.0.as_mut().unwrap();
+        let dest = BoxPos::new(b.pos.row - 1, b.pos.col);
+        let index = b.index.clone();
+        if game_panel.can_move_to(&dest, &index, game_lib.as_ref()) {
+            b.reset(
+                &dest,
+                &index,
+                game_lib.as_ref(),
+                game_panel.as_ref(),
+                &mut active_boxes,
+            );
+        } else {
+            game_panel.put_down_boxes(&mut commands, &active_boxes);
+            timer.0.pause();
+            play_box.0 = None;
+        }
+    }
+}
+
 fn try_move_left(
     play_box: &mut PlayBox,
     game_lib: &GameLib,
     game_panel: &GamePanel,
-    active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
+    active_boxes: &mut Query<
+        (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
+        With<ActiveBox>,
+    >,
 ) {
     let dest = BoxPos::new(play_box.pos.row, play_box.pos.col - 1);
     let index = play_box.index.clone();
@@ -115,7 +161,10 @@ fn try_move_right(
     play_box: &mut PlayBox,
     game_lib: &GameLib,
     game_panel: &GamePanel,
-    active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
+    active_boxes: &mut Query<
+        (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
+        With<ActiveBox>,
+    >,
 ) {
     let dest = BoxPos::new(play_box.pos.row, play_box.pos.col + 1);
     let index = play_box.index.clone();
@@ -128,7 +177,10 @@ fn try_rotate(
     play_box: &mut PlayBox,
     game_lib: &GameLib,
     game_panel: &GamePanel,
-    active_boxes: &mut Query<(&mut Transform, &mut Visibility), With<ActiveBox>>,
+    active_boxes: &mut Query<
+        (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
+        With<ActiveBox>,
+    >,
 ) {
     let dest = play_box.pos.clone();
     let index = play_box.index.rotate();

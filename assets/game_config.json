@@ -3,7 +3,6 @@
         "width": 800,
         "height": 800
     },
-    "box_size": 20,
     "game_panel_config": {
         "size": [34, 14],
         "pos": [5.0, 5.0],
@@ -14,6 +13,7 @@
         "background_z": 0.5,
         "border_z": 0.0
     },
+    "drop_down_interval": 1.0,
     "box_config": {
         "size": 20.0,
         "spacing": 1.0,
@@ -137,7 +137,7 @@
                     ]
                 ],
                 "level": 2,
-                "color": [125, 255, 0, 255]
+                "color": [255, 150, 51, 255]
             },
             {
                 "bitmaps": [

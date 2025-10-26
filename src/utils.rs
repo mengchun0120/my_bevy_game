@@ -22,6 +22,9 @@ pub struct Args {
 
 pub struct LogFileGuard(WorkerGuard);
 
+#[derive(Resource)]
+pub struct DropDownTimer(pub Timer);
+
 #[derive(Debug, Deserialize, Resource)]
 pub struct ISize {
     pub width: u32,

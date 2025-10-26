@@ -113,6 +113,22 @@ impl GamePanel {
         return true;
     }
 
+    pub fn put_down_boxes(
+        &mut self,
+        commands: &mut Commands,
+        active_boxes: &Query<
+            (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
+            With<ActiveBox>,
+        >,
+    ) {
+        for (e, _, _, pos) in active_boxes.iter() {
+            if self.is_inside(pos.row, pos.col) {
+                self.panel[pos.row as usize][pos.col as usize] = Some(e.clone());
+                commands.entity(e.clone()).remove::<ActiveBox>();
+            }
+        }
+    }
+
     fn calculate_size(game_config: &GameConfig, game_lib: &GameLib) -> (RectSize, RectSize) {
         let spacing = game_config.box_config.spacing;
         let box_span = game_lib.box_span;

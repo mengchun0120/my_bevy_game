@@ -10,6 +10,7 @@ pub struct GameConfig {
     pub window_size: ISize,
     pub game_panel_config: GamePanelConfig,
     pub box_config: BoxConfig,
+    pub drop_down_interval: f32,
 }
 
 #[derive(Debug, Deserialize)]
