@@ -101,13 +101,18 @@ impl PlayBox {
     ) {
         self.pos = pos.clone();
         self.index = index.clone();
-        let p = self.get_component_pos_vis(game_lib, game_panel);
-        let mut it = p.iter();
+        let box_pos = game_lib.box_pos(&index);
+        let mut it = box_pos.iter();
+
         for (mut t, mut v) in active_boxes.iter_mut() {
-            if let Some((p, u)) = it.next() {
+            if let Some(pos) = it.next() {
+                let row = self.pos.row + pos.row;
+                let col = self.pos.col + pos.col;
+                let p = game_lib.panel_pos(row, col);
+
                 t.translation.x = p.x;
                 t.translation.y = p.y;
-                *v.as_mut() = *u;
+                *v.as_mut() = game_panel.visibility(row, col);
             }
         }
     }
@@ -137,16 +142,11 @@ impl PlayBox {
             let mut col = self.pos.col;
             for c in 0..PLAY_BOX_BITMAP_SIZE {
                 if bitmap[r][c] != 0 {
-                    let visibility = if game_panel.is_visible(row, col) {
-                        Visibility::Visible
-                    } else {
-                        Visibility::Hidden
-                    };
                     commands.spawn((
                         Mesh2d(game_lib.box_mesh.clone()),
                         MeshMaterial2d(color.clone()),
                         Transform::from_xyz(x, y, z),
-                        visibility,
+                        game_panel.visibility(row, col),
                         ActiveBox,
                     ));
                 }
@@ -156,39 +156,5 @@ impl PlayBox {
             y += box_span;
             row += 1;
         }
-    }
-
-    fn get_component_pos_vis(
-        &self,
-        game_lib: &GameLib,
-        game_panel: &GamePanel,
-    ) -> Vec<(Vec2, Visibility)> {
-        let mut result: Vec<(Vec2, Visibility)> = Vec::new();
-        let init_pos = game_lib.panel_pos(self.pos.row, self.pos.col);
-        let bmp = game_lib.config.box_config.play_box_bitmap(&self.index);
-        let box_span = game_lib.box_span;
-        let mut row = self.pos.row;
-        let mut y = init_pos.y;
-
-        for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
-            let mut col = self.pos.col;
-            let mut x = init_pos.x;
-            for c in 0..PLAY_BOX_BITMAP_SIZE {
-                if bmp[r][c] != 0 {
-                    let v = if game_panel.is_visible(row, col) {
-                        Visibility::Visible
-                    } else {
-                        Visibility::Hidden
-                    };
-                    result.push((Vec2::new(x, y), v));
-                }
-                x += box_span;
-                col += 1;
-            }
-            y += box_span;
-            row += 1;
-        }
-
-        result
     }
 }

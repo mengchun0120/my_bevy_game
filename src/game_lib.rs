@@ -118,6 +118,26 @@ impl PlayBoxConfig {
         }
     }
 
+    pub fn box_pos(&self, rotate_index: usize) -> Vec<BoxPos> {
+        let mut row = 0;
+        let bmp = &self.bitmaps[rotate_index];
+        let mut result: Vec<BoxPos> = Vec::new();
+
+        for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
+            let mut col = 0;
+            for c in 0..PLAY_BOX_BITMAP_SIZE {
+                if bmp[r][c] != 0 {
+                    result.push(BoxPos::new(row, col));
+                }
+
+                col += 1;
+            }
+            row += 1;
+        }
+
+        result
+    }
+
     pub fn color(&self) -> Color {
         vec_to_color(&self.color)
     }
@@ -132,6 +152,7 @@ pub struct GameLib {
     pub box_mesh: Handle<Mesh>,
     pub box_colors: Vec<Handle<ColorMaterial>>,
     pub box_sizes: Vec<Vec<ISize>>,
+    pub box_positions: Vec<Vec<Vec<BoxPos>>>,
 }
 
 impl GameLib {
@@ -163,6 +184,8 @@ impl GameLib {
 
         let box_sizes = Self::init_box_sizes(&box_config.play_boxes);
 
+        let box_positions = Self::init_box_positions(&box_config.play_boxes);
+
         let game_lib = GameLib {
             config,
             origin_pos,
@@ -171,6 +194,7 @@ impl GameLib {
             box_mesh,
             box_colors,
             box_sizes,
+            box_positions,
         };
 
         info!("GameLib initialized");
@@ -180,6 +204,10 @@ impl GameLib {
 
     pub fn box_size(&self, index: &BoxIndex) -> &ISize {
         &self.box_sizes[index.type_index][index.rotate_index]
+    }
+
+    pub fn box_pos(&self, index: &BoxIndex) -> &Vec<BoxPos> {
+        &self.box_positions[index.type_index][index.rotate_index]
     }
 
     pub fn panel_pos(&self, row: i32, col: i32) -> Vec2 {
@@ -208,6 +236,20 @@ impl GameLib {
                 sizes.push(config.bmp_size(rotate_index));
             }
             result.push(sizes);
+        }
+
+        result
+    }
+
+    fn init_box_positions(play_boxes: &[PlayBoxConfig]) -> Vec<Vec<Vec<BoxPos>>> {
+        let mut result: Vec<Vec<Vec<BoxPos>>> = Vec::new();
+
+        for config in play_boxes {
+            let mut pos: Vec<Vec<BoxPos>> = Vec::new();
+            for rotate_index in 0..PLAY_BOX_ROTATE_COUNT {
+                pos.push(config.box_pos(rotate_index));
+            }
+            result.push(pos);
         }
 
         result
