@@ -1,12 +1,15 @@
 use crate::game_lib::*;
 use crate::play_box::*;
 use crate::utils::*;
+use core::ops::Range;
 use bevy::prelude::*;
 
 #[derive(Resource, Debug)]
 pub struct GamePanel {
     pub main_rows: usize,
     pub panel: Vec<Vec<Option<Entity>>>,
+    pub full_rows: Vec<usize>,
+    pub height: usize,
 }
 
 impl GamePanel {
@@ -43,6 +46,8 @@ impl GamePanel {
         let panel = Self {
             main_rows: panel_config.main_rows,
             panel: vec![vec![None; panel_config.col_count()]; panel_config.row_count()],
+            full_rows: Vec::new(),
+            height: 0,
         };
 
         info!("Game panel initialized");
@@ -115,6 +120,8 @@ impl GamePanel {
 
     pub fn put_down_boxes(
         &mut self,
+        play_box: &PlayBox,
+        game_lib: &GameLib,
         commands: &mut Commands,
         active_boxes: &Query<
             (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
@@ -127,6 +134,51 @@ impl GamePanel {
                 commands.entity(e.clone()).remove::<ActiveBox>();
             }
         }
+        self.update_height(play_box, game_lib);
+        self.check_full_rows(play_box, game_lib);
+    }
+
+    pub fn reach_top(&self) -> bool {
+        self.height >= self.main_rows
+    }
+
+    pub fn has_full_lines(&self) -> bool {
+        self.full_rows.len() > 0
+    }
+
+    pub fn set_full_rows_visibility(&self, commands: &mut Commands, v: Visibility) {
+        let set_visibility = move |mut v1: Mut<'_, Visibility>| {
+            *v1.as_mut() = v;
+        };
+
+        for r in self.full_rows.iter() {
+            for e in self.panel[*r].iter() {
+                if let Some(e1) = e {
+                    commands
+                        .entity(e1.clone())
+                        .entry::<Visibility>()
+                        .and_modify(set_visibility);
+                }
+            }
+        }
+    }
+
+    pub fn remove_full_rows(&mut self, commands: &mut Commands) {
+        if self.full_rows.is_empty() {
+            return;
+        }
+
+        for r in self.full_rows.iter() {
+            for e in self.panel[*r].iter() {
+                if let Some(e1) = e {
+                    commands
+                        .entity(e1.clone())
+                        .despawn();
+                }
+            }
+        }
+
+        let _s = 0..2;
     }
 
     fn calculate_size(game_config: &GameConfig, game_lib: &GameLib) -> (RectSize, RectSize) {
@@ -179,5 +231,48 @@ impl GamePanel {
             MeshMaterial2d(material),
             Transform::from_xyz(pos.x, pos.y, panel_config.border_z),
         ));
+    }
+
+    fn update_height(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
+        let s = game_lib.box_size(&play_box.index);
+        let new_height = play_box.pos.row as usize + s.height as usize;
+        if new_height > self.height {
+            self.height = new_height;
+        }
+        let _s = 0..2;
+    }
+
+    fn check_full_rows(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
+        let s = game_lib.box_size(&play_box.index);
+        let start_row = play_box.pos.row as usize;
+        let end_row = (play_box.pos.row as usize) + (s.height as usize);
+        self.full_rows.clear();
+        for r in start_row..end_row {
+            let is_full = self.panel[r].iter().all(|item| item.is_some());
+            if is_full {
+                self.full_rows.push(r);
+            }
+        }
+    }
+
+    fn get_move_ranges(&self) -> Vec<(Range<usize>, usize)> {
+        let last_index = self.full_rows.len() - 1;
+        let mut result: Vec<(Range<usize>, usize)> = Vec::new();
+
+        for i in 0..last_index {
+            let next_row = self.full_rows[i] + 1;
+            if  next_row < self.full_rows[i+1] {
+                let r = next_row..self.full_rows[i+1];
+                result.push((r, i+1));
+            }
+        }
+
+        let next_row = self.full_rows[last_index] + 1;
+        if next_row < self.height - 1 {
+            let r = next_row..self.height;
+            result.push((r, last_index+1));
+        }
+
+        result
     }
 }

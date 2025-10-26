@@ -26,28 +26,28 @@ pub struct LogFileGuard(WorkerGuard);
 pub struct DropDownTimer(pub Timer);
 
 #[derive(Resource)]
-pub struct FastDownTimer {
-    pub timer: Timer,
-    pub max_steps: u32,
-    pub step: u32,
+pub struct CountDownTimer {
+    timer: Timer,
+    max_count: u32,
+    pub count: u32,
 }
 
-impl FastDownTimer {
-    pub fn new(duration: f32, max_steps: u32) -> Self {
+impl CountDownTimer {
+    pub fn new(duration: f32, max_count: u32) -> Self {
         Self {
             timer: repeat_timer(duration),
-            max_steps,
-            step: 0,
+            max_count,
+            count: 0,
         }
     }
 
     pub fn start(&mut self) {
         self.timer.unpause();
-        self.step = 0;
+        self.count = 0;
     }
 
     pub fn is_finished(&self) -> bool {
-        self.step >= self.max_steps
+        self.count >= self.max_count
     }
 
     pub fn update(&mut self, time: &Time) -> bool {
@@ -57,7 +57,7 @@ impl FastDownTimer {
 
         self.timer.tick(time.delta());
         if self.timer.is_finished() {
-            self.step += 1;
+            self.count += 1;
             true
         } else {
             false
@@ -68,6 +68,12 @@ impl FastDownTimer {
         self.timer.pause();
     }
 }
+
+#[derive(Resource)]
+pub struct FastDownTimer(pub CountDownTimer);
+
+#[derive(Resource)]
+pub struct FlashFullLineTimer(pub CountDownTimer);
 
 #[derive(Debug, Deserialize, Resource)]
 pub struct ISize {

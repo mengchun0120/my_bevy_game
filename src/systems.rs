@@ -10,6 +10,8 @@ pub enum AppState {
     Loading,
     Playing,
     FastDown,
+    Flashing,
+    Stopped,
 }
 
 pub fn play_box_active(play_box: Res<PlayBoxRecord>) -> bool {
@@ -61,10 +63,14 @@ pub fn setup_game(
         PLAY_BOX_ROTATE_COUNT,
     ));
     commands.insert_resource(DropDownTimer(repeat_timer(config.drop_down_interval)));
-    commands.insert_resource(FastDownTimer::new(
+    commands.insert_resource(FastDownTimer(CountDownTimer::new(
         config.fast_down_interval,
         config.fast_down_max_steps,
-    ));
+    )));
+    commands.insert_resource(FlashFullLineTimer(CountDownTimer::new(
+        config.flash_full_line_interval,
+        config.flash_full_line_max_count,
+    )));
     commands.insert_resource(game_lib);
     commands.insert_resource(game_panel);
     commands.insert_resource(PlayBoxRecord(None));
@@ -136,12 +142,14 @@ pub fn process_input(
 }
 
 pub fn drop_down_play_box(
+    mut next_state: ResMut<NextState<AppState>>,
     mut commands: Commands,
     game_lib: Res<GameLib>,
     mut game_panel: ResMut<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
     time: Res<Time>,
     mut drop_down_timer: ResMut<DropDownTimer>,
+    mut flash_full_line_timer: ResMut<FlashFullLineTimer>,
     mut active_boxes: Query<
         (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
         With<ActiveBox>,
@@ -163,9 +171,15 @@ pub fn drop_down_play_box(
                 &mut active_boxes,
             );
         } else {
-            game_panel.put_down_boxes(&mut commands, &active_boxes);
+            game_panel.put_down_boxes(b, game_lib.as_ref(), &mut commands, &active_boxes);
             drop_down_timer.0.pause();
             play_box.0 = None;
+            if game_panel.has_full_lines() {
+                next_state.set(AppState::Flashing);
+                flash_full_line_timer.0.start();
+            } else if game_panel.reach_top() {
+                next_state.set(AppState::Stopped);
+            }
         }
     }
 }
@@ -183,7 +197,7 @@ pub fn fast_move_down(
     >,
 ) {
     let mut stop = false;
-    if fast_down_timer.update(time.as_ref()) {
+    if fast_down_timer.0.update(time.as_ref()) {
         let Some(b) = play_box.0.as_mut() else {
             return;
         };
@@ -202,10 +216,29 @@ pub fn fast_move_down(
         }
     }
 
-    if stop || fast_down_timer.is_finished() {
+    if stop || fast_down_timer.0.is_finished() {
         next_state.set(AppState::Playing);
-        fast_down_timer.stop();
+        fast_down_timer.0.stop();
     }
+}
+
+pub fn flash_full_lines(
+    mut commands: Commands,
+    mut next_state: ResMut<NextState<AppState>>,
+    game_panel: Res<GamePanel>,
+    mut flash_full_line_timer: ResMut<FlashFullLineTimer>,
+    time: Res<Time>,
+) {
+    if flash_full_line_timer.0.update(time.as_ref()) {
+        let v = if flash_full_line_timer.0.count % 2 == 0 {
+            Visibility::Hidden
+        } else {
+            Visibility::Visible
+        };
+        game_panel.set_full_rows_visibility(&mut commands, v);
+    }
+
+    if flash_full_line_timer.0.is_finished() {}
 }
 
 fn try_move_left(
@@ -278,6 +311,6 @@ fn start_fast_down(
     let dest = BoxPos::new(b.pos.row - 1, b.pos.col);
     if game_panel.can_move_to(&dest, &b.index, game_lib) {
         next_state.set(AppState::FastDown);
-        fast_down_timer.start();
+        fast_down_timer.0.start();
     }
 }

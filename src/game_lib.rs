@@ -13,6 +13,8 @@ pub struct GameConfig {
     pub drop_down_interval: f32,
     pub fast_down_interval: f32,
     pub fast_down_max_steps: u32,
+    pub flash_full_line_interval: f32,
+    pub flash_full_line_max_count: u32,
 }
 
 #[derive(Debug, Deserialize)]
