@@ -6,9 +6,6 @@ use rand::prelude::*;
 #[derive(Resource, Debug)]
 pub struct PlayBoxRecord(pub Option<PlayBox>);
 
-#[derive(Component, Debug)]
-pub struct ActiveBox;
-
 #[derive(Resource, Debug, Clone)]
 pub struct BoxIndex {
     pub type_index: usize,
@@ -73,6 +70,7 @@ impl BoxPos {
 pub struct PlayBox {
     pub pos: BoxPos,
     pub index: BoxIndex,
+    pub entities: Vec<Entity>,
 }
 
 impl PlayBox {
@@ -87,7 +85,11 @@ impl PlayBox {
             return None;
         };
 
-        let mut play_box = PlayBox { pos, index };
+        let mut play_box = PlayBox {
+            pos,
+            index,
+            entities: Vec::new(),
+        };
 
         play_box.add_components(game_lib, commands, game_panel);
 
@@ -98,29 +100,51 @@ impl PlayBox {
         &mut self,
         pos: &BoxPos,
         index: &BoxIndex,
+        commands: &mut Commands,
         game_lib: &GameLib,
         game_panel: &GamePanel,
-        active_boxes: &mut Query<
-            (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
-            With<ActiveBox>,
-        >,
     ) {
         self.pos = pos.clone();
         self.index = index.clone();
         let box_pos = game_lib.box_pos(&index);
         let mut it = box_pos.iter();
 
-        for (_, mut t, mut v, mut box_pos) in active_boxes.iter_mut() {
+        for e in self.entities.iter() {
             if let Some(pos) = it.next() {
                 let row = self.pos.row + pos.row;
                 let col = self.pos.col + pos.col;
                 let p = game_lib.panel_pos(row, col);
+                let v = game_panel.visibility(row, col);
+                let mut entity = commands.entity(e.clone());
 
-                t.translation.x = p.x;
-                t.translation.y = p.y;
-                *v.as_mut() = game_panel.visibility(row, col);
-                box_pos.row = row;
-                box_pos.col = col;
+                entity.entry::<Transform>()
+                    .and_modify(move |mut t| {
+                        t.translation.x = p.x;
+                        t.translation.y = p.y;
+                    });
+
+                entity.entry::<Visibility>()
+                    .and_modify(move |mut vis|{
+                        *vis.as_mut() = v;
+                    });
+            }
+        }
+    }
+
+    pub fn put_in_panel(
+        &self,
+        game_lib: &GameLib,
+        game_panel: &mut GamePanel,
+    ) {
+        let box_pos = game_lib.box_pos(&self.index);
+        let mut it = box_pos.iter();
+
+        for e in self.entities.iter() {
+            if let Some(pos) = it.next() {
+                let row = self.pos.row + pos.row;
+                let col = self.pos.col + pos.col;
+
+                game_panel.put_in_entity(row, col, e.clone());
             }
         }
     }
@@ -146,14 +170,13 @@ impl PlayBox {
             let mut col = self.pos.col;
             for c in 0..PLAY_BOX_BITMAP_SIZE {
                 if bitmap[r][c] != 0 {
-                    commands.spawn((
+                    let e = commands.spawn((
                         Mesh2d(game_lib.box_mesh.clone()),
                         MeshMaterial2d(color.clone()),
                         Transform::from_xyz(x, y, z),
                         game_panel.visibility(row, col),
-                        ActiveBox,
-                        BoxPos::new(row, col),
                     ));
+                    self.entities.push(e.id());
                 }
                 x += box_span;
                 col += 1;

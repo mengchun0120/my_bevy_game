@@ -1,8 +1,8 @@
 use crate::game_lib::*;
 use crate::play_box::*;
 use crate::utils::*;
-use core::ops::Range;
 use bevy::prelude::*;
+use core::ops::Range;
 
 #[derive(Resource, Debug)]
 pub struct GamePanel {
@@ -80,6 +80,21 @@ impl GamePanel {
         (0..self.row_count() as i32).contains(&row) && (0..self.col_count() as i32).contains(&col)
     }
 
+    pub fn put_in_entity(&mut self, row: i32, col: i32, entity: Entity) {
+        if !self.is_inside(row, col) {
+            panic!("Failed to put entity into GamePanel: row={} or col={} is out of range", row, col);
+        }
+
+        let row = row as usize;
+        let col = col as usize;
+
+        if self.panel[row][col].is_some() {
+            panic!("Failed to put entity into GamePanel: entity at row={} col={} is not empty", row, col);
+        }
+
+        self.panel[row][col] = Some(entity);
+    }
+
     pub fn init_pos(&self, index: &BoxIndex, game_lib: &GameLib) -> Option<BoxPos> {
         let box_size = game_lib.box_size(index);
         let max_row = self.row_count() as i32 - box_size.height as i32;
@@ -118,26 +133,6 @@ impl GamePanel {
         return true;
     }
 
-    pub fn put_down_boxes(
-        &mut self,
-        play_box: &PlayBox,
-        game_lib: &GameLib,
-        commands: &mut Commands,
-        active_boxes: &Query<
-            (Entity, &mut Transform, &mut Visibility, &mut BoxPos),
-            With<ActiveBox>,
-        >,
-    ) {
-        for (e, _, _, pos) in active_boxes.iter() {
-            if self.is_inside(pos.row, pos.col) {
-                self.panel[pos.row as usize][pos.col as usize] = Some(e.clone());
-                commands.entity(e.clone()).remove::<ActiveBox>();
-            }
-        }
-        self.update_height(play_box, game_lib);
-        self.check_full_rows(play_box, game_lib);
-    }
-
     pub fn reach_top(&self) -> bool {
         self.height >= self.main_rows
     }
@@ -171,9 +166,7 @@ impl GamePanel {
         for r in self.full_rows.iter() {
             for e in self.panel[*r].iter() {
                 if let Some(e1) = e {
-                    commands
-                        .entity(e1.clone())
-                        .despawn();
+                    commands.entity(e1.clone()).despawn();
                 }
             }
         }
@@ -260,17 +253,19 @@ impl GamePanel {
         let mut result: Vec<(Range<usize>, usize)> = Vec::new();
 
         for i in 0..last_index {
-            let next_row = self.full_rows[i] + 1;
-            if  next_row < self.full_rows[i+1] {
-                let r = next_row..self.full_rows[i+1];
-                result.push((r, i+1));
+            let start_row = self.full_rows[i] + 1;
+            let end_row = self.full_rows[i + 1];
+            if start_row < end_row {
+                let r = start_row..end_row;
+                result.push((r, i + 1));
             }
         }
 
-        let next_row = self.full_rows[last_index] + 1;
-        if next_row < self.height - 1 {
-            let r = next_row..self.height;
-            result.push((r, last_index+1));
+        let start_row = self.full_rows[last_index] + 1;
+        let end_row = self.height;
+        if start_row < end_row {
+            let r = start_row..end_row;
+            result.push((r, last_index + 1));
         }
 
         result
