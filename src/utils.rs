@@ -151,3 +151,8 @@ pub fn set_opt_max<T: PartialOrd + Clone>(prev_value: &mut Option<T>, new_value:
         prev_value.replace(new_value.clone());
     }
 }
+
+pub fn get_box_pos(origin: &Vec2, row: i32, col: i32, span: f32) -> Vec2 {
+    let offset = Vec2::new(col as f32, row as f32) * span;
+    *origin + offset
+}

@@ -1,5 +1,6 @@
 use crate::game_lib::*;
 use crate::game_panel::*;
+use crate::utils::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 
@@ -113,7 +114,7 @@ impl PlayBox {
             if let Some(pos) = it.next() {
                 let row = self.pos.row + pos.row;
                 let col = self.pos.col + pos.col;
-                let p = game_lib.panel_pos(row, col);
+                let p = get_box_pos(&game_lib.box_origin, row, col, game_lib.box_span);
                 let v = game_panel.visibility(row, col);
                 let mut entity = commands.entity(e.clone());
 
@@ -150,7 +151,7 @@ impl PlayBox {
         game_panel: &GamePanel,
     ) {
         let config = &game_lib.config;
-        let init_pos = game_lib.panel_pos(self.pos.row, self.pos.col);
+        let init_pos = get_box_pos(&game_lib.box_origin, self.pos.row, self.pos.col, game_lib.box_span);
         let color = &game_lib.box_colors[self.index.type_index];
         let box_span = game_lib.box_span;
         let box_config = &config.box_config;

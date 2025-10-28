@@ -315,7 +315,7 @@ impl GamePanel {
         commands: &mut Commands,
         game_lib: &GameLib,
     ) {
-        let init_pos = game_lib.panel_pos(start_row as i32, 0);
+        let init_pos = get_box_pos(&game_lib.box_origin, start_row as i32, 0, game_lib.box_span);
         let span = game_lib.box_span;
         let mut y = init_pos.y;
 

@@ -215,11 +215,6 @@ impl GameLib {
         &self.box_positions[index.type_index][index.rotate_index]
     }
 
-    pub fn panel_pos(&self, row: i32, col: i32) -> Vec2 {
-        let offset = Vec2::new(col as f32, row as f32) * self.box_span;
-        self.box_origin + offset
-    }
-
     fn init_box_colors(
         play_boxes: &[PlayBoxConfig],
         materials: &mut Assets<ColorMaterial>,
