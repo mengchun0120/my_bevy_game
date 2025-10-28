@@ -154,8 +154,8 @@ impl GamePanel {
     }
 
     pub fn toggle_full_rows_visibility(&self, commands: &mut Commands) {
-        for r in self.full_rows.iter() {
-            for e in self.panel[*r].iter() {
+        for row in self.full_rows.iter() {
+            for e in self.panel[*row].iter() {
                 if let Some(e1) = e {
                     commands
                         .entity(e1.clone())
@@ -173,8 +173,8 @@ impl GamePanel {
             return;
         }
 
-        let remove_ranges = self.get_remove_ranges();
-        for (range, offset) in remove_ranges {
+        let move_ranges = self.get_move_ranges();
+        for (range, offset) in move_ranges {
             self.copy_rows(range, offset);
         }
 
@@ -256,9 +256,9 @@ impl GamePanel {
         let end_row = start_row + (s.height as usize);
 
         self.full_rows.clear();
-        for r in start_row..end_row {
-            if self.is_full_row(r) {
-                self.full_rows.push(r);
+        for row in start_row..end_row {
+            if self.is_full_row(row) {
+                self.full_rows.push(row);
             }
         }
     }
@@ -267,7 +267,7 @@ impl GamePanel {
         self.panel[row].iter().all(|item| item.is_some())
     }
 
-    fn get_remove_ranges(&self) -> Vec<(Range<usize>, usize)> {
+    fn get_move_ranges(&self) -> Vec<(Range<usize>, usize)> {
         let last_index = self.full_rows.len() - 1;
         let mut result: Vec<(Range<usize>, usize)> = Vec::new();
 
