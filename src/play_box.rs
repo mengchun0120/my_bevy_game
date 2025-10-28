@@ -117,25 +117,19 @@ impl PlayBox {
                 let v = game_panel.visibility(row, col);
                 let mut entity = commands.entity(e.clone());
 
-                entity.entry::<Transform>()
-                    .and_modify(move |mut t| {
-                        t.translation.x = p.x;
-                        t.translation.y = p.y;
-                    });
+                entity.entry::<Transform>().and_modify(move |mut t| {
+                    t.translation.x = p.x;
+                    t.translation.y = p.y;
+                });
 
-                entity.entry::<Visibility>()
-                    .and_modify(move |mut vis|{
-                        *vis.as_mut() = v;
-                    });
+                entity.entry::<Visibility>().and_modify(move |mut vis| {
+                    *vis.as_mut() = v;
+                });
             }
         }
     }
 
-    pub fn put_in_panel(
-        &self,
-        game_lib: &GameLib,
-        game_panel: &mut GamePanel,
-    ) {
+    pub fn put_in_panel(&self, game_lib: &GameLib, game_panel: &mut GamePanel) {
         let box_pos = game_lib.box_pos(&self.index);
         let mut it = box_pos.iter();
 

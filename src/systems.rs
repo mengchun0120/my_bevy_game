@@ -165,9 +165,10 @@ pub fn drop_down_play_box(
                 game_panel.as_ref(),
             );
         } else {
-            b.put_in_panel(game_lib.as_ref(), game_panel.as_mut());
+            game_panel.put_down_play_box(b, game_lib.as_ref());
             drop_down_timer.0.pause();
             play_box.0 = None;
+
             if game_panel.has_full_lines() {
                 next_state.set(AppState::Flashing);
                 flash_full_line_timer.0.start();
@@ -214,23 +215,23 @@ pub fn fast_move_down(
     }
 }
 
-pub fn flash_full_lines(
+pub fn flash_full_rows(
     mut commands: Commands,
     mut next_state: ResMut<NextState<AppState>>,
-    game_panel: Res<GamePanel>,
+    mut game_panel: ResMut<GamePanel>,
+    game_lib: Res<GameLib>,
     mut flash_full_line_timer: ResMut<FlashFullLineTimer>,
     time: Res<Time>,
 ) {
     if flash_full_line_timer.0.update(time.as_ref()) {
-        let v = if flash_full_line_timer.0.count % 2 == 0 {
-            Visibility::Hidden
-        } else {
-            Visibility::Visible
-        };
-        game_panel.set_full_rows_visibility(&mut commands, v);
+        game_panel.toggle_full_rows_visibility(&mut commands);
     }
 
-    if flash_full_line_timer.0.is_finished() {}
+    if flash_full_line_timer.0.is_finished() {
+        game_panel.remove_full_rows(&mut commands, game_lib.as_ref());
+        flash_full_line_timer.0.stop();
+        next_state.set(AppState::Playing);
+    }
 }
 
 fn try_move_left(

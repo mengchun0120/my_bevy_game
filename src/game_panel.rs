@@ -82,14 +82,20 @@ impl GamePanel {
 
     pub fn put_in_entity(&mut self, row: i32, col: i32, entity: Entity) {
         if !self.is_inside(row, col) {
-            panic!("Failed to put entity into GamePanel: row={} or col={} is out of range", row, col);
+            panic!(
+                "Failed to put entity into GamePanel: row={} or col={} is out of range",
+                row, col
+            );
         }
 
         let row = row as usize;
         let col = col as usize;
 
         if self.panel[row][col].is_some() {
-            panic!("Failed to put entity into GamePanel: entity at row={} col={} is not empty", row, col);
+            panic!(
+                "Failed to put entity into GamePanel: entity at row={} col={} is not empty",
+                row, col
+            );
         }
 
         self.panel[row][col] = Some(entity);
@@ -133,6 +139,12 @@ impl GamePanel {
         return true;
     }
 
+    pub fn put_down_play_box(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
+        play_box.put_in_panel(game_lib, self);
+        self.update_height(play_box, game_lib);
+        self.check_full_rows(play_box, game_lib);
+    }
+
     pub fn reach_top(&self) -> bool {
         self.height >= self.main_rows
     }
@@ -141,37 +153,41 @@ impl GamePanel {
         self.full_rows.len() > 0
     }
 
-    pub fn set_full_rows_visibility(&self, commands: &mut Commands, v: Visibility) {
-        let set_visibility = move |mut v1: Mut<'_, Visibility>| {
-            *v1.as_mut() = v;
-        };
-
+    pub fn toggle_full_rows_visibility(&self, commands: &mut Commands) {
         for r in self.full_rows.iter() {
             for e in self.panel[*r].iter() {
                 if let Some(e1) = e {
                     commands
                         .entity(e1.clone())
                         .entry::<Visibility>()
-                        .and_modify(set_visibility);
+                        .and_modify(|mut v| {
+                            v.toggle_visible_hidden();
+                        });
                 }
             }
         }
     }
 
-    pub fn remove_full_rows(&mut self, commands: &mut Commands) {
+    pub fn remove_full_rows(&mut self, commands: &mut Commands, game_lib: &GameLib) {
         if self.full_rows.is_empty() {
             return;
         }
 
-        for r in self.full_rows.iter() {
-            for e in self.panel[*r].iter() {
-                if let Some(e1) = e {
-                    commands.entity(e1.clone()).despawn();
-                }
-            }
+        let remove_ranges = self.get_remove_ranges();
+        for (range, offset) in remove_ranges {
+            self.copy_rows(range, offset);
         }
 
-        let _s = 0..2;
+        let clear_start_row = self.height - self.full_rows.len();
+        self.clear_rows(clear_start_row..self.height);
+
+        let update_start_row = self.full_rows[0];
+        if update_start_row < clear_start_row {
+            self.update_rows_pos(update_start_row, clear_start_row, commands, game_lib);
+        }
+
+        self.height -= self.full_rows.len();
+        self.full_rows.clear();
     }
 
     fn calculate_size(game_config: &GameConfig, game_lib: &GameLib) -> (RectSize, RectSize) {
@@ -232,23 +248,26 @@ impl GamePanel {
         if new_height > self.height {
             self.height = new_height;
         }
-        let _s = 0..2;
     }
 
     fn check_full_rows(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
         let s = game_lib.box_size(&play_box.index);
         let start_row = play_box.pos.row as usize;
-        let end_row = (play_box.pos.row as usize) + (s.height as usize);
+        let end_row = start_row + (s.height as usize);
+
         self.full_rows.clear();
         for r in start_row..end_row {
-            let is_full = self.panel[r].iter().all(|item| item.is_some());
-            if is_full {
+            if self.is_full_row(r) {
                 self.full_rows.push(r);
             }
         }
     }
 
-    fn get_move_ranges(&self) -> Vec<(Range<usize>, usize)> {
+    fn is_full_row(&self, row: usize) -> bool {
+        self.panel[row].iter().all(|item| item.is_some())
+    }
+
+    fn get_remove_ranges(&self) -> Vec<(Range<usize>, usize)> {
         let last_index = self.full_rows.len() - 1;
         let mut result: Vec<(Range<usize>, usize)> = Vec::new();
 
@@ -256,18 +275,66 @@ impl GamePanel {
             let start_row = self.full_rows[i] + 1;
             let end_row = self.full_rows[i + 1];
             if start_row < end_row {
-                let r = start_row..end_row;
-                result.push((r, i + 1));
+                result.push((start_row..end_row, i + 1));
             }
         }
 
         let start_row = self.full_rows[last_index] + 1;
         let end_row = self.height;
         if start_row < end_row {
-            let r = start_row..end_row;
-            result.push((r, last_index + 1));
+            result.push((start_row..end_row, last_index + 1));
         }
 
         result
+    }
+
+    fn copy_rows(&mut self, range: Range<usize>, offset: usize) {
+        for r in range {
+            self.copy_row(r - offset, r);
+        }
+    }
+
+    fn clear_rows(&mut self, range: Range<usize>) {
+        for row in range {
+            for col in 0..self.col_count() {
+                self.panel[row][col] = None;
+            }
+        }
+    }
+
+    fn copy_row(&mut self, dest_row: usize, src_row: usize) {
+        for col in 0..self.col_count() {
+            self.panel[dest_row][col] = self.panel[src_row][col];
+        }
+    }
+
+    fn update_rows_pos(
+        &self,
+        start_row: usize,
+        end_row: usize,
+        commands: &mut Commands,
+        game_lib: &GameLib,
+    ) {
+        let init_pos = game_lib.panel_pos(start_row as i32, 0);
+        let span = game_lib.box_span;
+        let mut y = init_pos.y;
+
+        for row in start_row..end_row {
+            let mut x = init_pos.x;
+            for col in 0..self.col_count() {
+                if let Some(e) = self.panel[row][col] {
+                    let pos = Vec2::new(x, y);
+                    commands
+                        .entity(e.clone())
+                        .entry::<Transform>()
+                        .and_modify(move |mut t| {
+                            t.translation.x = pos.x;
+                            t.translation.y = pos.y;
+                        });
+                }
+                x += span;
+            }
+            y += span;
+        }
     }
 }
