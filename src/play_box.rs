@@ -67,6 +67,31 @@ impl BoxPos {
     }
 }
 
+#[derive(Resource)]
+pub struct PlayBoxRegion {
+    pub box_origin: Vec2,
+    row_count: usize,
+    col_count: usize,
+}
+
+impl PlayBoxRegion {
+    pub fn new(box_origin: Vec2, row_count: usize, col_count: usize) -> Self {
+        Self {
+            box_origin,
+            row_count,
+            col_count,
+        }
+    }
+
+    pub fn get_visibility(&self, row: i32, col: i32) -> Visibility {
+        if (0..self.row_count as i32).contains(&row) && (0..self.col_count as i32).contains(&col) {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        }
+    }
+}
+
 #[derive(Resource, Debug)]
 pub struct PlayBox {
     pub pos: BoxPos,
@@ -76,34 +101,30 @@ pub struct PlayBox {
 
 impl PlayBox {
     pub fn new(
-        g: &mut IndexGen,
+        index: BoxIndex,
+        pos: BoxPos,
+        region: &PlayBoxRegion,
         game_lib: &GameLib,
         commands: &mut Commands,
-        game_panel: &GamePanel,
-    ) -> Option<Self> {
-        let index = g.rand_box();
-        let Some(pos) = game_panel.init_pos(&index, game_lib) else {
-            return None;
-        };
-
+    ) -> Self {
         let mut play_box = PlayBox {
             pos,
             index,
             entities: Vec::new(),
         };
 
-        play_box.add_components(game_lib, commands, game_panel);
+        play_box.add_components(region, game_lib, commands);
 
-        Some(play_box)
+        play_box
     }
 
     pub fn reset(
         &mut self,
-        pos: &BoxPos,
-        index: &BoxIndex,
+        pos: BoxPos,
+        index: BoxIndex,
+        region: &PlayBoxRegion,
         commands: &mut Commands,
         game_lib: &GameLib,
-        game_panel: &GamePanel,
     ) {
         self.pos = pos.clone();
         self.index = index.clone();
@@ -114,8 +135,8 @@ impl PlayBox {
             if let Some(pos) = it.next() {
                 let row = self.pos.row + pos.row;
                 let col = self.pos.col + pos.col;
-                let p = get_box_pos(&game_lib.box_origin, row, col, game_lib.box_span);
-                let v = game_panel.visibility(row, col);
+                let p = get_box_pos(&region.box_origin, row, col, game_lib.box_span);
+                let v = region.get_visibility(row, col);
                 let mut entity = commands.entity(e.clone());
 
                 entity.entry::<Transform>().and_modify(move |mut t| {
@@ -146,13 +167,13 @@ impl PlayBox {
 
     fn add_components(
         &mut self,
+        region: &PlayBoxRegion,
         game_lib: &GameLib,
         commands: &mut Commands,
-        game_panel: &GamePanel,
     ) {
         let config = &game_lib.config;
         let init_pos = get_box_pos(
-            &game_lib.box_origin,
+            &region.box_origin,
             self.pos.row,
             self.pos.col,
             game_lib.box_span,
@@ -174,7 +195,7 @@ impl PlayBox {
                         Mesh2d(game_lib.box_mesh.clone()),
                         MeshMaterial2d(color.clone()),
                         Transform::from_xyz(x, y, z),
-                        game_panel.visibility(row, col),
+                        region.get_visibility(row, col),
                     ));
                     self.entities.push(e.id());
                 }

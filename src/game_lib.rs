@@ -151,13 +151,11 @@ pub struct PreviewConfig {
 pub struct GameLib {
     pub config: GameConfig,
     pub origin_pos: Vec2,
-    pub box_origin: Vec2,
     pub box_span: f32,
     pub box_mesh: Handle<Mesh>,
     pub box_colors: Vec<Handle<ColorMaterial>>,
     pub box_sizes: Vec<Vec<ISize>>,
     pub box_positions: Vec<Vec<Vec<BoxPos>>>,
-    pub preview_origin: Vec2,
 }
 
 impl GameLib {
@@ -176,11 +174,6 @@ impl GameLib {
             config.window_size.height as f32,
         ) / 2.0;
 
-        let box_origin = origin_pos
-            + vec_to_vec2(&panel_config.pos)
-            + Vec2::splat(panel_config.border_breath + box_config.spacing)
-            + Vec2::splat(box_config.size) / 2.0;
-
         let box_span = box_config.size + box_config.spacing;
 
         let box_mesh = meshes.add(Rectangle::new(box_config.size, box_config.size));
@@ -191,22 +184,14 @@ impl GameLib {
 
         let box_positions = Self::init_box_positions(&box_config.play_boxes);
 
-        let preview_config = &config.preview_config;
-        let preview_origin = origin_pos
-            + vec_to_vec2(&preview_config.pos)
-            + Vec2::splat(preview_config.border_breath + box_config.spacing)
-            + Vec2::splat(box_config.size) / 2.0;
-
         let game_lib = GameLib {
             config,
             origin_pos,
-            box_origin,
             box_span,
             box_mesh,
             box_colors,
             box_sizes,
             box_positions,
-            preview_origin,
         };
 
         info!("GameLib initialized");

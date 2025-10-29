@@ -1,10 +1,13 @@
 use crate::game_lib::*;
+use crate::play_box::*;
 use crate::utils::*;
-use bevy::mesh;
 use bevy::prelude::*;
 
 #[derive(Resource)]
-pub struct Preview {}
+pub struct Preview {
+    pub play_box: Option<PlayBox>,
+    pub box_origin: Vec2,
+}
 
 impl Preview {
     pub fn new(
@@ -13,13 +16,47 @@ impl Preview {
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
     ) -> Self {
-        let preview = Preview {};
+        let preview = Preview {
+            play_box: None,
+            box_origin: Self::get_box_origin(game_lib),
+        };
 
         Self::create_panel(commands, game_lib, meshes, materials);
 
         info!("Preview initialized successfully");
 
         preview
+    }
+
+    pub fn init_box(
+        &mut self,
+        index_gen: &mut IndexGen,
+        commands: &mut Commands,
+        game_lib: &GameLib,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<ColorMaterial>,
+    ) {
+        if self.play_box.is_some() {
+            return;
+        }
+
+        let play_box = PlayBox::new(
+            index_gen.rand_box(),
+            BoxPos::new(0, 0),
+            &self.box_origin,
+            commands,
+            meshes,
+            materials,
+        );
+    }
+
+    fn get_box_origin(game_lib: &GameLib) -> Vec2 {
+        let preview_config = &game_lib.config.preview_config;
+        let box_config = &game_lib.config.box_config;
+        game_lib.origin_pos
+            + vec_to_vec2(&preview_config.pos)
+            + Vec2::splat(preview_config.border_breath + box_config.spacing)
+            + Vec2::splat(box_config.size) / 2.0
     }
 
     fn get_size(game_lib: &GameLib) -> (RectSize, RectSize) {

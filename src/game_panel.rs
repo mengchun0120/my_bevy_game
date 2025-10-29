@@ -10,6 +10,7 @@ pub struct GamePanel {
     pub panel: Vec<Vec<Option<Entity>>>,
     pub full_rows: Vec<usize>,
     pub height: usize,
+    pub box_origin: Vec2,
 }
 
 impl GamePanel {
@@ -26,6 +27,7 @@ impl GamePanel {
             panel: vec![vec![None; panel_config.col_count()]; panel_config.row_count()],
             full_rows: Vec::new(),
             height: 0,
+            box_origin: Self::get_box_origin(game_lib),
         };
 
         Self::create_panel(commands, game_lib, meshes, materials);
@@ -172,6 +174,15 @@ impl GamePanel {
         self.full_rows.clear();
     }
 
+    fn get_box_origin(game_lib: &GameLib) -> Vec2 {
+        let panel_config = &game_lib.config.game_panel_config;
+        let box_config = &game_lib.config.box_config;
+        game_lib.origin_pos
+            + vec_to_vec2(&panel_config.pos)
+            + Vec2::splat(panel_config.border_breath + box_config.spacing)
+            + Vec2::splat(box_config.size) / 2.0
+    }
+
     fn create_panel(
         commands: &mut Commands,
         game_lib: &GameLib,
@@ -308,7 +319,7 @@ impl GamePanel {
         commands: &mut Commands,
         game_lib: &GameLib,
     ) {
-        let init_pos = get_box_pos(&game_lib.box_origin, start_row as i32, 0, game_lib.box_span);
+        let init_pos = get_box_pos(&self.box_origin, start_row as i32, 0, game_lib.box_span);
         let span = game_lib.box_span;
         let mut y = init_pos.y;
 

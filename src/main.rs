@@ -21,19 +21,12 @@ fn main() {
         .insert_resource(args)
         .init_state::<AppState>()
         .add_systems(Startup, setup_game)
+        .add_systems(Update, reset_play_box.run_if(in_state(AppState::InitBox)))
         .add_systems(
             Update,
-            reset_play_box.run_if(in_state(AppState::InitBox)),
+            (process_input, drop_down_play_box).run_if(in_state(AppState::Playing)),
         )
-        .add_systems(
-            Update,
-            (process_input, drop_down_play_box)
-                .run_if(in_state(AppState::Playing)),
-        )
-        .add_systems(
-            Update,
-            fast_move_down.run_if(in_state(AppState::FastDown)),
-        )
+        .add_systems(Update, fast_move_down.run_if(in_state(AppState::FastDown)))
         .add_systems(Update, flash_full_rows.run_if(in_state(AppState::Flashing)))
         .run();
 }
