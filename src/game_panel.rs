@@ -153,6 +153,8 @@ impl GamePanel {
             return;
         }
 
+        self.despawn_full_rows(commands);
+
         let move_ranges = self.get_move_ranges();
         for (range, offset) in move_ranges {
             self.copy_rows(range, offset);
@@ -246,6 +248,16 @@ impl GamePanel {
 
     fn is_full_row(&self, row: usize) -> bool {
         self.panel[row].iter().all(|item| item.is_some())
+    }
+
+    fn despawn_full_rows(&mut self, commands: &mut Commands) {
+        for row in self.full_rows.iter() {
+            for col in 0..self.col_count() {
+                if let Some(e) = self.panel[*row][col] {
+                    commands.entity(e.clone()).despawn();
+                }
+            }
+        }
     }
 
     fn get_move_ranges(&self) -> Vec<(Range<usize>, usize)> {
