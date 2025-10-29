@@ -1,6 +1,7 @@
 use crate::game_lib::*;
 use crate::game_panel::*;
 use crate::play_box::*;
+use crate::preview::*;
 use crate::utils::*;
 use bevy::prelude::*;
 
@@ -49,12 +50,11 @@ pub fn setup_game(
 
     commands.spawn(Camera2d);
 
-    let game_panel = GamePanel::new(
-        &mut commands,
-        &game_lib,
-        meshes.as_mut(),
-        materials.as_mut(),
-    );
+    let cmd = &mut commands;
+
+    let game_panel = GamePanel::new(cmd, &game_lib, meshes.as_mut(), materials.as_mut());
+
+    let preview = Preview::new(cmd, &game_lib, meshes.as_mut(), materials.as_mut());
 
     let box_config = &config.box_config;
 
@@ -74,6 +74,7 @@ pub fn setup_game(
     commands.insert_resource(game_lib);
     commands.insert_resource(game_panel);
     commands.insert_resource(PlayBoxRecord(None));
+    commands.insert_resource(preview);
 
     next_state.set(AppState::Playing);
 

@@ -2,6 +2,7 @@ mod game_lib;
 mod game_panel;
 mod my_error;
 mod play_box;
+mod preview;
 mod systems;
 mod utils;
 

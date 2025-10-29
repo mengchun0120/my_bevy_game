@@ -15,14 +15,15 @@ pub struct GameConfig {
     pub fast_down_max_steps: u32,
     pub flash_full_line_interval: f32,
     pub flash_full_line_max_count: u32,
+    pub preview_config: PreviewConfig,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct GamePanelConfig {
     size: [usize; 2],
-    pos: [f32; 2],
-    background_color: [u8; 4],
-    border_color: [u8; 4],
+    pub pos: [f32; 2],
+    pub background_color: [u8; 4],
+    pub border_color: [u8; 4],
     pub main_rows: usize,
     pub border_breath: f32,
     pub background_z: f32,
@@ -36,18 +37,6 @@ impl GamePanelConfig {
 
     pub fn col_count(&self) -> usize {
         self.size[1]
-    }
-
-    pub fn pos(&self) -> Vec2 {
-        vec_to_vec2(&self.pos)
-    }
-
-    pub fn background_color(&self) -> Color {
-        vec_to_color(&self.background_color)
-    }
-
-    pub fn border_color(&self) -> Color {
-        vec_to_color(&self.border_color)
     }
 }
 
@@ -148,6 +137,16 @@ impl PlayBoxConfig {
     }
 }
 
+#[derive(Deserialize, Resource, Debug)]
+pub struct PreviewConfig {
+    pub pos: [f32; 2],
+    pub background_color: [u8; 4],
+    pub border_color: [u8; 4],
+    pub background_z: f32,
+    pub border_breath: f32,
+    pub border_z: f32,
+}
+
 #[derive(Resource, Debug)]
 pub struct GameLib {
     pub config: GameConfig,
@@ -158,6 +157,7 @@ pub struct GameLib {
     pub box_colors: Vec<Handle<ColorMaterial>>,
     pub box_sizes: Vec<Vec<ISize>>,
     pub box_positions: Vec<Vec<Vec<BoxPos>>>,
+    pub preview_origin: Vec2,
 }
 
 impl GameLib {
@@ -191,6 +191,12 @@ impl GameLib {
 
         let box_positions = Self::init_box_positions(&box_config.play_boxes);
 
+        let preview_config = &config.preview_config;
+        let preview_origin = origin_pos
+            + vec_to_vec2(&preview_config.pos)
+            + Vec2::splat(preview_config.border_breath + box_config.spacing)
+            + Vec2::splat(box_config.size) / 2.0;
+
         let game_lib = GameLib {
             config,
             origin_pos,
@@ -200,6 +206,7 @@ impl GameLib {
             box_colors,
             box_sizes,
             box_positions,
+            preview_origin,
         };
 
         info!("GameLib initialized");

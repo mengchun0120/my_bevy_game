@@ -18,6 +18,14 @@
     "fast_down_max_steps": 5,
     "flash_full_line_interval": 0.1,
     "flash_full_line_max_count": 5,
+    "preview_config": {
+        "pos": [317.0, 551.0],
+        "background_color": [76, 76, 76, 255],
+        "border_color": [120, 120, 120, 255],
+        "border_breath": 1.0,
+        "background_z": 0.5,
+        "border_z": 0.0
+    },
     "box_config": {
         "size": 20.0,
         "spacing": 1.0,

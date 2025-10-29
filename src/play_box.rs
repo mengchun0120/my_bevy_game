@@ -151,7 +151,12 @@ impl PlayBox {
         game_panel: &GamePanel,
     ) {
         let config = &game_lib.config;
-        let init_pos = get_box_pos(&game_lib.box_origin, self.pos.row, self.pos.col, game_lib.box_span);
+        let init_pos = get_box_pos(
+            &game_lib.box_origin,
+            self.pos.row,
+            self.pos.col,
+            game_lib.box_span,
+        );
         let color = &game_lib.box_colors[self.index.type_index];
         let box_span = game_lib.box_span;
         let box_config = &config.box_config;

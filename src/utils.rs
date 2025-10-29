@@ -156,3 +156,21 @@ pub fn get_box_pos(origin: &Vec2, row: i32, col: i32, span: f32) -> Vec2 {
     let offset = Vec2::new(col as f32, row as f32) * span;
     *origin + offset
 }
+
+pub fn create_rect(
+    pos: &Vec2,
+    z: f32,
+    size: &RectSize,
+    color: Color,
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<ColorMaterial>,
+) {
+    let mesh = meshes.add(Rectangle::new(size.width, size.height));
+    let material = materials.add(color);
+    commands.spawn((
+        Mesh2d(mesh),
+        MeshMaterial2d(material),
+        Transform::from_xyz(pos.x, pos.y, z),
+    ));
+}

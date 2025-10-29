@@ -19,29 +19,7 @@ impl GamePanel {
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<ColorMaterial>,
     ) -> Self {
-        let config = &game_lib.config;
-        let panel_config = &config.game_panel_config;
-        let (internal_size, total_size) = Self::calculate_size(config, game_lib);
-        let panel_pos = game_lib.origin_pos
-            + panel_config.pos()
-            + Vec2::new(total_size.width, total_size.height) / 2.0;
-
-        Self::add_panel_internal(
-            &internal_size,
-            &panel_pos,
-            panel_config,
-            commands,
-            meshes,
-            materials,
-        );
-        Self::add_panel_border(
-            &total_size,
-            &panel_pos,
-            panel_config,
-            commands,
-            meshes,
-            materials,
-        );
+        let panel_config = &game_lib.config.game_panel_config;
 
         let panel = Self {
             main_rows: panel_config.main_rows,
@@ -49,6 +27,8 @@ impl GamePanel {
             full_rows: Vec::new(),
             height: 0,
         };
+
+        Self::create_panel(commands, game_lib, meshes, materials);
 
         info!("Game panel initialized");
 
@@ -190,10 +170,45 @@ impl GamePanel {
         self.full_rows.clear();
     }
 
-    fn calculate_size(game_config: &GameConfig, game_lib: &GameLib) -> (RectSize, RectSize) {
-        let spacing = game_config.box_config.spacing;
+    fn create_panel(
+        commands: &mut Commands,
+        game_lib: &GameLib,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<ColorMaterial>,
+    ) {
+        let panel_config = &game_lib.config.game_panel_config;
+        let (internal_size, total_size) = Self::calculate_size(game_lib);
+        let background_color = vec_to_color(&panel_config.background_color);
+        let border_color = vec_to_color(&panel_config.border_color);
+        let pos = game_lib.origin_pos
+            + vec_to_vec2(&panel_config.pos)
+            + Vec2::new(total_size.width, total_size.height) / 2.0;
+
+        create_rect(
+            &pos,
+            panel_config.background_z,
+            &internal_size,
+            background_color,
+            commands,
+            meshes,
+            materials,
+        );
+
+        create_rect(
+            &pos,
+            panel_config.border_z,
+            &total_size,
+            border_color,
+            commands,
+            meshes,
+            materials,
+        );
+    }
+
+    fn calculate_size(game_lib: &GameLib) -> (RectSize, RectSize) {
+        let spacing = game_lib.config.box_config.spacing;
         let box_span = game_lib.box_span;
-        let panel_config = &game_config.game_panel_config;
+        let panel_config = &game_lib.config.game_panel_config;
 
         let internal_size = RectSize {
             width: (panel_config.col_count() as f32) * box_span + spacing,
@@ -206,40 +221,6 @@ impl GamePanel {
         };
 
         (internal_size, total_size)
-    }
-
-    fn add_panel_internal(
-        size: &RectSize,
-        pos: &Vec2,
-        panel_config: &GamePanelConfig,
-        commands: &mut Commands,
-        meshes: &mut Assets<Mesh>,
-        materials: &mut Assets<ColorMaterial>,
-    ) {
-        let mesh = meshes.add(Rectangle::new(size.width, size.height));
-        let material = materials.add(panel_config.background_color());
-        commands.spawn((
-            Mesh2d(mesh),
-            MeshMaterial2d(material),
-            Transform::from_xyz(pos.x, pos.y, panel_config.background_z),
-        ));
-    }
-
-    fn add_panel_border(
-        size: &RectSize,
-        pos: &Vec2,
-        panel_config: &GamePanelConfig,
-        commands: &mut Commands,
-        meshes: &mut Assets<Mesh>,
-        materials: &mut Assets<ColorMaterial>,
-    ) {
-        let mesh = meshes.add(Rectangle::new(size.width, size.height));
-        let material = materials.add(panel_config.border_color());
-        commands.spawn((
-            Mesh2d(mesh),
-            MeshMaterial2d(material),
-            Transform::from_xyz(pos.x, pos.y, panel_config.border_z),
-        ));
     }
 
     fn update_height(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
