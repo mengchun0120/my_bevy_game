@@ -9,14 +9,11 @@ use bevy::prelude::*;
 pub enum AppState {
     #[default]
     Loading,
+    InitBox,
     Playing,
     FastDown,
     Flashing,
     Stopped,
-}
-
-pub fn play_box_active(play_box: Res<PlayBoxRecord>) -> bool {
-    play_box.0.is_some()
 }
 
 pub fn setup_game(
@@ -76,12 +73,13 @@ pub fn setup_game(
     commands.insert_resource(PlayBoxRecord(None));
     commands.insert_resource(preview);
 
-    next_state.set(AppState::Playing);
+    next_state.set(AppState::InitBox);
 
     info!("Finished setting up game");
 }
 
 pub fn reset_play_box(
+    mut next_state: ResMut<NextState<AppState>>,
     mut commands: Commands,
     game_lib: Res<GameLib>,
     game_panel: Res<GamePanel>,
@@ -89,13 +87,16 @@ pub fn reset_play_box(
     mut index_gen: ResMut<IndexGen>,
     mut drop_down_timer: ResMut<DropDownTimer>,
 ) {
-    play_box.0 = PlayBox::new(
-        index_gen.as_mut(),
-        game_lib.as_ref(),
-        &mut commands,
-        game_panel.as_ref(),
-    );
-    drop_down_timer.0.unpause();
+    if play_box.0.is_none() {
+        play_box.0 = PlayBox::new(
+            index_gen.as_mut(),
+            game_lib.as_ref(),
+            &mut commands,
+            game_panel.as_ref(),
+        );
+        drop_down_timer.0.unpause();
+        next_state.set(AppState::Playing);
+    }
 }
 
 pub fn process_input(
@@ -175,6 +176,8 @@ pub fn drop_down_play_box(
                 flash_full_line_timer.0.start();
             } else if game_panel.reach_top() {
                 next_state.set(AppState::Stopped);
+            } else {
+                next_state.set(AppState::InitBox);
             }
         }
     }
@@ -231,7 +234,7 @@ pub fn flash_full_rows(
     if flash_full_line_timer.0.is_finished() {
         game_panel.remove_full_rows(&mut commands, game_lib.as_ref());
         flash_full_line_timer.0.stop();
-        next_state.set(AppState::Playing);
+        next_state.set(AppState::InitBox);
     }
 }
 
@@ -247,7 +250,6 @@ fn try_move_left(
     let dest = BoxPos::new(b.pos.row, b.pos.col - 1);
     let index = b.index.clone();
     if game_panel.can_move_to(&dest, &index, game_lib) {
-        // b.reset(&dest, &index, game_lib, game_panel, active_boxes);
         b.reset(&dest, &index, commands, game_lib, game_panel);
     }
 }
@@ -264,7 +266,6 @@ fn try_move_right(
     let dest = BoxPos::new(b.pos.row, b.pos.col + 1);
     let index = b.index.clone();
     if game_panel.can_move_to(&dest, &index, game_lib) {
-        // b.reset(&dest, &index, game_lib, game_panel, active_boxes);
         b.reset(&dest, &index, commands, game_lib, game_panel);
     }
 }
