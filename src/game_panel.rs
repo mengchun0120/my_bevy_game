@@ -89,13 +89,13 @@ impl GamePanel {
         None
     }
 
-    pub fn can_move_to(&self, dest: &BoxPos, index: &BoxIndex, game_lib: &GameLib) -> bool {
+    pub fn can_move_to(&self, pos: &BoxPos, index: &BoxIndex, game_lib: &GameLib) -> bool {
         let config = &game_lib.config;
         let bmp = config.box_config.play_box_bitmap(index);
-        let mut row = dest.row;
+        let mut row = pos.row;
 
         for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
-            let mut col = dest.col;
+            let mut col = pos.col;
             for c in 0..PLAY_BOX_BITMAP_SIZE {
                 if bmp[r][c] != 0
                     && (!self.is_inside(row, col)
@@ -111,10 +111,17 @@ impl GamePanel {
         return true;
     }
 
-    pub fn put_down_play_box(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
+    pub fn put_down_play_box(&mut self, play_box: &mut PlayBox, game_lib: &GameLib) {
+        if !play_box.is_valid() {
+            return;
+        }
+
+        let index = play_box.index().unwrap().clone();
+        let pos = play_box.pos().clone();
+
         play_box.put_in_panel(game_lib, self);
-        self.update_height(play_box, game_lib);
-        self.check_full_rows(play_box, game_lib);
+        self.update_height(&index, &pos, game_lib);
+        self.check_full_rows(&index, &pos, game_lib);
     }
 
     pub fn reach_top(&self) -> bool {
@@ -235,17 +242,17 @@ impl GamePanel {
         (internal_size, total_size)
     }
 
-    fn update_height(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
-        let s = game_lib.box_size(&play_box.index);
-        let new_height = play_box.pos.row as usize + s.height as usize;
+    fn update_height(&mut self, index: &BoxIndex, pos: &BoxPos, game_lib: &GameLib) {
+        let s = game_lib.box_size(index);
+        let new_height = pos.row as usize + s.height as usize;
         if new_height > self.height {
             self.height = new_height;
         }
     }
 
-    fn check_full_rows(&mut self, play_box: &PlayBox, game_lib: &GameLib) {
-        let s = game_lib.box_size(&play_box.index);
-        let start_row = play_box.pos.row as usize;
+    fn check_full_rows(&mut self, index: &BoxIndex, pos: &BoxPos, game_lib: &GameLib) {
+        let s = game_lib.box_size(index);
+        let start_row = pos.row as usize;
         let end_row = start_row + (s.height as usize);
 
         self.full_rows.clear();

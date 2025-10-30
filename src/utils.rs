@@ -20,8 +20,6 @@ pub struct Args {
     pub config_path: PathBuf,
 }
 
-pub struct LogFileGuard(WorkerGuard);
-
 #[derive(Resource)]
 pub struct DropDownTimer(pub Timer);
 
@@ -112,7 +110,7 @@ where
     Ok(result)
 }
 
-pub fn setup_log<P: AsRef<Path>>(log_path: P) -> LogFileGuard {
+pub fn setup_log<P: AsRef<Path>>(log_path: P) -> WorkerGuard {
     let log_file = File::create(log_path.as_ref()).expect("Open file");
     let (non_blocking_appender, guard) = tracing_appender::non_blocking(log_file);
 
@@ -129,7 +127,7 @@ pub fn setup_log<P: AsRef<Path>>(log_path: P) -> LogFileGuard {
         .with(file_layer)
         .init();
 
-    LogFileGuard(guard)
+    guard
 }
 
 pub fn set_opt_min<T: PartialOrd + Clone>(prev_value: &mut Option<T>, new_value: &T) {

@@ -165,23 +165,15 @@ impl GameLib {
         materials: &mut Assets<ColorMaterial>,
     ) -> Result<Self, MyError> {
         let config: GameConfig = read_json(path)?;
-
-        let panel_config = &config.game_panel_config;
         let box_config = &config.box_config;
-
         let origin_pos = -Vec2::new(
             config.window_size.width as f32,
             config.window_size.height as f32,
         ) / 2.0;
-
         let box_span = box_config.size + box_config.spacing;
-
         let box_mesh = meshes.add(Rectangle::new(box_config.size, box_config.size));
-
         let box_colors = Self::init_box_colors(&box_config.play_boxes, materials);
-
         let box_sizes = Self::init_box_sizes(&box_config.play_boxes);
-
         let box_positions = Self::init_box_positions(&box_config.play_boxes);
 
         let game_lib = GameLib {

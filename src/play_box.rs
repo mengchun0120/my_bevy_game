@@ -4,9 +4,6 @@ use crate::utils::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 
-#[derive(Resource, Debug)]
-pub struct PlayBoxRecord(pub Option<PlayBox>);
-
 #[derive(Resource, Debug, Clone)]
 pub struct BoxIndex {
     pub type_index: usize,
@@ -14,18 +11,8 @@ pub struct BoxIndex {
 }
 
 impl BoxIndex {
-    pub fn new(type_index: usize, rotate_index: usize) -> Self {
-        Self {
-            type_index,
-            rotate_index,
-        }
-    }
-
-    pub fn rotate(&self) -> Self {
-        Self::new(
-            self.type_index,
-            (self.rotate_index + 1) % PLAY_BOX_ROTATE_COUNT,
-        )
+    pub fn rotate(&mut self) {
+        self.rotate_index = (self.rotate_index + 1) % PLAY_BOX_ROTATE_COUNT;
     }
 }
 
@@ -55,7 +42,7 @@ impl IndexGen {
     }
 }
 
-#[derive(Resource, Component, Debug, Clone)]
+#[derive(Resource, Component, Debug, Clone, Default)]
 pub struct BoxPos {
     pub row: i32,
     pub col: i32,
@@ -92,76 +79,94 @@ impl PlayBoxRegion {
     }
 }
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Default)]
 pub struct PlayBox {
-    pub pos: BoxPos,
-    pub index: BoxIndex,
-    pub entities: Vec<Entity>,
+    pos: BoxPos,
+    index: Option<BoxIndex>,
+    entities: Vec<Entity>,
 }
 
 impl PlayBox {
-    pub fn new(
+    pub fn init(
+        &mut self,
         index: BoxIndex,
         pos: BoxPos,
         region: &PlayBoxRegion,
         game_lib: &GameLib,
         commands: &mut Commands,
-    ) -> Self {
-        let mut play_box = PlayBox {
-            pos,
-            index,
-            entities: Vec::new(),
-        };
+    ) {
+        if self.is_valid() {
+            return;
+        }
 
-        play_box.add_components(region, game_lib, commands);
-
-        play_box
+        self.pos = pos;
+        self.index = Some(index);
+        self.add_components(region, game_lib, commands);
     }
 
-    pub fn reset(
+    pub fn move_to(
         &mut self,
-        pos: BoxPos,
-        index: BoxIndex,
+        new_pos: BoxPos,
         region: &PlayBoxRegion,
-        commands: &mut Commands,
         game_lib: &GameLib,
+        commands: &mut Commands,
     ) {
-        self.pos = pos.clone();
-        self.index = index.clone();
+        if !self.is_valid() {
+            return;
+        }
+
+        self.pos = new_pos;
         self.update_pos_vis(region, commands, game_lib);
     }
 
-    pub fn update_pos_vis(
-        &self,
+    pub fn rotate(
+        &mut self,
         region: &PlayBoxRegion,
+        game_lib: &GameLib,
+        commands: &mut Commands,
+    ) {
+        if !self.is_valid() {
+            return;
+        }
+
+        self.index.as_mut().unwrap().rotate();
+        self.update_pos_vis(region, commands, game_lib);
+    }
+
+    #[inline]
+    pub fn pos(&self) -> &BoxPos {
+        &self.pos
+    }
+
+    #[inline]
+    pub fn index(&self) -> Option<&BoxIndex> {
+        self.index.as_ref()
+    }
+
+    #[inline]
+    pub fn is_valid(&self) -> bool {
+        self.index.is_some()
+    }
+
+    pub fn transfer(
+        &mut self,
+        source: &mut PlayBox,
+        new_pos: BoxPos,
+        new_region: &PlayBoxRegion,
         commands: &mut Commands,
         game_lib: &GameLib,
     ) {
-        let box_pos = game_lib.box_pos(&self.index);
-        let mut it = box_pos.iter();
-
-        for e in self.entities.iter() {
-            if let Some(pos) = it.next() {
-                let row = self.pos.row + pos.row;
-                let col = self.pos.col + pos.col;
-                let p = get_box_pos(&region.box_origin, row, col, game_lib.box_span);
-                let v = region.get_visibility(row, col);
-                let mut entity = commands.entity(e.clone());
-
-                entity.entry::<Transform>().and_modify(move |mut t| {
-                    t.translation.x = p.x;
-                    t.translation.y = p.y;
-                });
-
-                entity.entry::<Visibility>().and_modify(move |mut vis| {
-                    *vis.as_mut() = v;
-                });
-            }
-        }
+        self.pos = new_pos;
+        self.index = source.index.take();
+        self.transfer_entities(source);
+        self.update_pos_vis(new_region, commands, game_lib);
     }
 
-    pub fn put_in_panel(&self, game_lib: &GameLib, game_panel: &mut GamePanel) {
-        let box_pos = game_lib.box_pos(&self.index);
+    pub fn put_in_panel(&mut self, game_lib: &GameLib, game_panel: &mut GamePanel) {
+        let Some(index) = &self.index else {
+            return;
+        };
+        let box_pos = game_lib.box_pos(index);
         let mut it = box_pos.iter();
 
         for e in self.entities.iter() {
@@ -172,6 +177,9 @@ impl PlayBox {
                 game_panel.put_in_entity(row, col, e.clone());
             }
         }
+
+        self.index = None;
+        self.entities.clear();
     }
 
     fn add_components(
@@ -180,6 +188,7 @@ impl PlayBox {
         game_lib: &GameLib,
         commands: &mut Commands,
     ) {
+        let index = self.index.as_ref().unwrap();
         let config = &game_lib.config;
         let init_pos = get_box_pos(
             &region.box_origin,
@@ -187,10 +196,10 @@ impl PlayBox {
             self.pos.col,
             game_lib.box_span,
         );
-        let color = &game_lib.box_colors[self.index.type_index];
+        let color = &game_lib.box_colors[index.type_index];
         let box_span = game_lib.box_span;
         let box_config = &config.box_config;
-        let bitmap = box_config.play_box_bitmap(&self.index);
+        let bitmap = box_config.play_box_bitmap(index);
         let mut y = init_pos.y;
         let z = box_config.z;
         let mut row = self.pos.row;
@@ -214,6 +223,41 @@ impl PlayBox {
             }
             y += box_span;
             row += 1;
+        }
+    }
+
+    fn transfer_entities(&mut self, source: &mut PlayBox) {
+        self.entities.clear();
+        for e in source.entities.iter() {
+            self.entities.push(e.clone());
+        }
+        source.entities.clear();
+    }
+
+    fn update_pos_vis(&self, region: &PlayBoxRegion, commands: &mut Commands, game_lib: &GameLib) {
+        let Some(index) = &self.index else {
+            return;
+        };
+        let box_pos = game_lib.box_pos(index);
+        let mut it = box_pos.iter();
+
+        for e in self.entities.iter() {
+            if let Some(pos) = it.next() {
+                let row = self.pos.row + pos.row;
+                let col = self.pos.col + pos.col;
+                let p = get_box_pos(&region.box_origin, row, col, game_lib.box_span);
+                let v = region.get_visibility(row, col);
+                let mut entity = commands.entity(e.clone());
+
+                entity.entry::<Transform>().and_modify(move |mut t| {
+                    t.translation.x = p.x;
+                    t.translation.y = p.y;
+                });
+
+                entity.entry::<Visibility>().and_modify(move |mut vis| {
+                    *vis.as_mut() = v;
+                });
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 #[derive(Resource)]
 pub struct Preview {
-    pub play_box: Option<PlayBox>,
+    pub play_box: PlayBox,
     pub region: PlayBoxRegion,
 }
 
@@ -17,7 +17,7 @@ impl Preview {
         materials: &mut Assets<ColorMaterial>,
     ) -> Self {
         let preview = Preview {
-            play_box: None,
+            play_box: PlayBox::default(),
             region: Self::get_region(game_lib),
         };
 
@@ -28,25 +28,23 @@ impl Preview {
         preview
     }
 
-    pub fn set_box(
+    pub fn reset_box(
         &mut self,
         index_gen: &mut IndexGen,
         commands: &mut Commands,
         game_lib: &GameLib,
     ) {
-        if self.play_box.is_some() {
+        if self.play_box.is_valid() {
             return;
         }
 
-        let play_box = PlayBox::new(
+        self.play_box.init(
             index_gen.rand_box(),
             BoxPos::new(0, 0),
             &self.region,
             game_lib,
             commands,
         );
-
-        self.play_box = Some(play_box);
     }
 
     fn get_region(game_lib: &GameLib) -> PlayBoxRegion {
