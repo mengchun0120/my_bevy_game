@@ -7,10 +7,10 @@ use core::ops::Range;
 #[derive(Resource, Debug)]
 pub struct GamePanel {
     pub main_rows: usize,
-    pub panel: Vec<Vec<Option<Entity>>>,
+    pub boxes: Vec<Vec<Option<Entity>>>,
     pub full_rows: Vec<usize>,
     pub height: usize,
-    pub box_origin: Vec2,
+    pub play_region: PlayBoxRegion,
 }
 
 impl GamePanel {
@@ -24,10 +24,10 @@ impl GamePanel {
 
         let panel = Self {
             main_rows: panel_config.main_rows,
-            panel: vec![vec![None; panel_config.col_count()]; panel_config.row_count()],
+            boxes: vec![vec![None; panel_config.col_count()]; panel_config.row_count()],
             full_rows: Vec::new(),
             height: 0,
-            box_origin: Self::get_box_origin(game_lib),
+            play_region: Self::get_play_region(game_lib),
         };
 
         Self::create_panel(commands, game_lib, meshes, materials);
@@ -39,22 +39,12 @@ impl GamePanel {
 
     #[inline]
     pub fn row_count(&self) -> usize {
-        self.panel.len()
+        self.boxes.len()
     }
 
     #[inline]
     pub fn col_count(&self) -> usize {
-        self.panel[0].len()
-    }
-
-    #[inline]
-    pub fn visibility(&self, row: i32, col: i32) -> Visibility {
-        if (0..self.main_rows as i32).contains(&row) && (0..self.col_count() as i32).contains(&col)
-        {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        }
+        self.boxes[0].len()
     }
 
     #[inline]
@@ -73,14 +63,14 @@ impl GamePanel {
         let row = row as usize;
         let col = col as usize;
 
-        if self.panel[row][col].is_some() {
+        if self.boxes[row][col].is_some() {
             panic!(
                 "Failed to put entity into GamePanel: entity at row={} col={} is not empty",
                 row, col
             );
         }
 
-        self.panel[row][col] = Some(entity);
+        self.boxes[row][col] = Some(entity);
     }
 
     pub fn init_pos(&self, index: &BoxIndex, game_lib: &GameLib) -> Option<BoxPos> {
@@ -109,7 +99,7 @@ impl GamePanel {
             for c in 0..PLAY_BOX_BITMAP_SIZE {
                 if bmp[r][c] != 0
                     && (!self.is_inside(row, col)
-                        || self.panel[row as usize][col as usize].is_some())
+                        || self.boxes[row as usize][col as usize].is_some())
                 {
                     return false;
                 }
@@ -137,7 +127,7 @@ impl GamePanel {
 
     pub fn toggle_full_rows_visibility(&self, commands: &mut Commands) {
         for row in self.full_rows.iter() {
-            for e in self.panel[*row].iter() {
+            for e in self.boxes[*row].iter() {
                 if let Some(e1) = e {
                     commands
                         .entity(e1.clone())
@@ -172,6 +162,15 @@ impl GamePanel {
 
         self.height -= self.full_rows.len();
         self.full_rows.clear();
+    }
+
+    fn get_play_region(game_lib: &GameLib) -> PlayBoxRegion {
+        let panel_config = &game_lib.config.game_panel_config;
+        PlayBoxRegion::new(
+            Self::get_box_origin(game_lib),
+            panel_config.main_rows,
+            panel_config.col_count(),
+        )
     }
 
     fn get_box_origin(game_lib: &GameLib) -> Vec2 {
@@ -258,13 +257,13 @@ impl GamePanel {
     }
 
     fn is_full_row(&self, row: usize) -> bool {
-        self.panel[row].iter().all(|item| item.is_some())
+        self.boxes[row].iter().all(|item| item.is_some())
     }
 
     fn despawn_full_rows(&mut self, commands: &mut Commands) {
         for row in self.full_rows.iter() {
             for col in 0..self.col_count() {
-                if let Some(e) = self.panel[*row][col] {
+                if let Some(e) = self.boxes[*row][col] {
                     commands.entity(e.clone()).despawn();
                 }
             }
@@ -301,14 +300,14 @@ impl GamePanel {
     fn clear_rows(&mut self, range: Range<usize>) {
         for row in range {
             for col in 0..self.col_count() {
-                self.panel[row][col] = None;
+                self.boxes[row][col] = None;
             }
         }
     }
 
     fn copy_row(&mut self, dest_row: usize, src_row: usize) {
         for col in 0..self.col_count() {
-            self.panel[dest_row][col] = self.panel[src_row][col];
+            self.boxes[dest_row][col] = self.boxes[src_row][col];
         }
     }
 
@@ -319,14 +318,19 @@ impl GamePanel {
         commands: &mut Commands,
         game_lib: &GameLib,
     ) {
-        let init_pos = get_box_pos(&self.box_origin, start_row as i32, 0, game_lib.box_span);
+        let init_pos = get_box_pos(
+            &self.play_region.box_origin,
+            start_row as i32,
+            0,
+            game_lib.box_span,
+        );
         let span = game_lib.box_span;
         let mut y = init_pos.y;
 
         for row in start_row..end_row {
             let mut x = init_pos.x;
             for col in 0..self.col_count() {
-                if let Some(e) = self.panel[row][col] {
+                if let Some(e) = self.boxes[row][col] {
                     let pos = Vec2::new(x, y);
                     commands
                         .entity(e.clone())

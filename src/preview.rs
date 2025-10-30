@@ -6,7 +6,7 @@ use bevy::prelude::*;
 #[derive(Resource)]
 pub struct Preview {
     pub play_box: Option<PlayBox>,
-    pub box_origin: Vec2,
+    pub region: PlayBoxRegion,
 }
 
 impl Preview {
@@ -18,7 +18,7 @@ impl Preview {
     ) -> Self {
         let preview = Preview {
             play_box: None,
-            box_origin: Self::get_box_origin(game_lib),
+            region: Self::get_region(game_lib),
         };
 
         Self::create_panel(commands, game_lib, meshes, materials);
@@ -28,13 +28,11 @@ impl Preview {
         preview
     }
 
-    pub fn init_box(
+    pub fn set_box(
         &mut self,
         index_gen: &mut IndexGen,
         commands: &mut Commands,
         game_lib: &GameLib,
-        meshes: &mut Assets<Mesh>,
-        materials: &mut Assets<ColorMaterial>,
     ) {
         if self.play_box.is_some() {
             return;
@@ -43,11 +41,20 @@ impl Preview {
         let play_box = PlayBox::new(
             index_gen.rand_box(),
             BoxPos::new(0, 0),
-            &self.box_origin,
+            &self.region,
+            game_lib,
             commands,
-            meshes,
-            materials,
         );
+
+        self.play_box = Some(play_box);
+    }
+
+    fn get_region(game_lib: &GameLib) -> PlayBoxRegion {
+        PlayBoxRegion::new(
+            Self::get_box_origin(game_lib),
+            PLAY_BOX_BITMAP_SIZE,
+            PLAY_BOX_BITMAP_SIZE,
+        )
     }
 
     fn get_box_origin(game_lib: &GameLib) -> Vec2 {

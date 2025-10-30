@@ -85,18 +85,41 @@ pub fn reset_play_box(
     game_panel: Res<GamePanel>,
     mut play_box: ResMut<PlayBoxRecord>,
     mut index_gen: ResMut<IndexGen>,
+    mut preview: ResMut<Preview>,
     mut drop_down_timer: ResMut<DropDownTimer>,
 ) {
-    if play_box.0.is_none() {
-        play_box.0 = PlayBox::new(
-            index_gen.as_mut(),
-            game_lib.as_ref(),
-            &mut commands,
-            game_panel.as_ref(),
-        );
-        drop_down_timer.0.unpause();
-        next_state.set(AppState::Playing);
+    if play_box.0.is_some() {
+        return;
     }
+
+    if let Some(p) = &preview.play_box {
+        if let Some(pos) = game_panel.init_pos(&p.index, game_lib.as_ref()) {
+            let mut p1 = preview.play_box.take().unwrap();
+            p1.pos = pos;
+            p1.update_pos_vis(&game_panel.play_region, &mut commands, game_lib.as_ref());
+            play_box.0 = Some(p1);
+
+            preview.set_box(index_gen.as_mut(), &mut commands, game_lib.as_ref());
+        } else {
+            next_state.set(AppState::Stopped);
+            return;
+        }
+        
+    } else {
+        let index = index_gen.rand_box();
+        if let Some(pos) = game_panel.init_pos(&index, game_lib.as_ref()) {
+            let p1 = PlayBox::new(index, pos, &game_panel.play_region, game_lib.as_ref(), &mut commands);
+            play_box.0 = Some(p1);
+
+            preview.set_box(index_gen.as_mut(), &mut commands, game_lib.as_ref());
+        } else {
+            next_state.set(AppState::Stopped);
+            return;
+        }
+    }
+
+    drop_down_timer.0.unpause();
+    next_state.set(AppState::Playing);
 }
 
 pub fn process_input(
@@ -155,16 +178,17 @@ pub fn drop_down_play_box(
         let Some(b) = play_box.0.as_mut() else {
             return;
         };
+
         let dest = BoxPos::new(b.pos.row - 1, b.pos.col);
         let index = b.index.clone();
 
         if game_panel.can_move_to(&dest, &index, game_lib.as_ref()) {
             b.reset(
-                &dest,
-                &index,
+                dest,
+                index,
+                &game_panel.play_region,
                 &mut commands,
                 game_lib.as_ref(),
-                game_panel.as_ref(),
             );
         } else {
             game_panel.put_down_play_box(b, game_lib.as_ref());
@@ -202,11 +226,11 @@ pub fn fast_move_down(
 
         if game_panel.can_move_to(&dest, &index, game_lib.as_ref()) {
             b.reset(
-                &dest,
-                &index,
+                dest,
+                index,
+                &game_panel.play_region,
                 &mut commands,
                 game_lib.as_ref(),
-                game_panel.as_ref(),
             );
         } else {
             stop = true;
@@ -250,7 +274,7 @@ fn try_move_left(
     let dest = BoxPos::new(b.pos.row, b.pos.col - 1);
     let index = b.index.clone();
     if game_panel.can_move_to(&dest, &index, game_lib) {
-        b.reset(&dest, &index, commands, game_lib, game_panel);
+        b.reset(dest, index, &game_panel.play_region, commands, game_lib);
     }
 }
 
@@ -266,7 +290,7 @@ fn try_move_right(
     let dest = BoxPos::new(b.pos.row, b.pos.col + 1);
     let index = b.index.clone();
     if game_panel.can_move_to(&dest, &index, game_lib) {
-        b.reset(&dest, &index, commands, game_lib, game_panel);
+        b.reset(dest, index, &game_panel.play_region, commands, game_lib);
     }
 }
 
@@ -282,8 +306,7 @@ fn try_rotate(
     let dest = b.pos.clone();
     let index = b.index.rotate();
     if game_panel.can_move_to(&dest, &index, game_lib) {
-        // b.reset(&dest, &index, game_lib, game_panel, active_boxes);
-        b.reset(&dest, &index, commands, game_lib, game_panel);
+        b.reset(dest, index, &game_panel.play_region, commands, game_lib);
     }
 }
 

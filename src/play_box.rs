@@ -67,7 +67,7 @@ impl BoxPos {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 pub struct PlayBoxRegion {
     pub box_origin: Vec2,
     row_count: usize,
@@ -128,7 +128,16 @@ impl PlayBox {
     ) {
         self.pos = pos.clone();
         self.index = index.clone();
-        let box_pos = game_lib.box_pos(&index);
+        self.update_pos_vis(region, commands, game_lib);
+    }
+
+    pub fn update_pos_vis(
+        &self,
+        region: &PlayBoxRegion,
+        commands: &mut Commands,
+        game_lib: &GameLib,
+    ) {
+        let box_pos = game_lib.box_pos(&self.index);
         let mut it = box_pos.iter();
 
         for e in self.entities.iter() {
@@ -186,6 +195,7 @@ impl PlayBox {
         let z = box_config.z;
         let mut row = self.pos.row;
 
+        self.entities.clear();
         for r in (0..PLAY_BOX_BITMAP_SIZE).rev() {
             let mut x = init_pos.x;
             let mut col = self.pos.col;
